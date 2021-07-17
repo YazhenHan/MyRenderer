@@ -23,5 +23,8 @@
     <ClInclude Include="head.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="fitting.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
