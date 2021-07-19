@@ -1,120 +1,78 @@
 #include "head.hpp"
 
 
-float gauss(float x) {
+double gauss(double x) {
 	return expf(-0.5 * x * x);
 }
 
-Eigen::MatrixXf A;
-Eigen::VectorXf W;
-Eigen::VectorXf B;
+Eigen::VectorXd a;
+Eigen::VectorXd b;
+Eigen::VectorXd W;
+Eigen::VectorXd B;
 void train(const ImVector<ImVec2>& points) {
 	int n = points.size();
 	// X, Y
-	Eigen::VectorXf X(n);
+	Eigen::VectorXd X(n);
 	for (int i = 0; i < n; i++)
 		X[i] = points[i].x;
-	Eigen::VectorXf Y(n);
+	Eigen::VectorXd Y(n);
 	for (int i = 0; i < n; i++)
 		Y[i] = points[i].y;
 	printf("%f\n", Y.sum() / Y.size());
 
-	// X1
-	Eigen::MatrixXf X1(n, 2);
-	for (int i = 0; i < n; i++)
-	{
-		X1(i, 0) = points[i].x;
-		X1(i, 1) = 1.0;
-	}
-
 	// A
-	A.resize(2, 3);
-	for (int i = 0; i < 2; i++)
-		for (int j = 0; j < 3; j++)
-			A(i, j) = rand() / float(RAND_MAX) * 2 - 1;
+	a.resize(n);
+	for (int i = 0; i < n; i++)
+		a[i] = rand() / float(RAND_MAX) * 2 - 1;
+	b.resize(n);
+	for (int i = 0; i < n; i++)
+		b[i] = rand() / float(RAND_MAX) * 2 - 1;
+
 	// W
-	W.resize(3);
-	for (int i = 0; i < 3; i++)
+	W.resize(n);
+	for (int i = 0; i < n; i++)
 		W[i] = rand() / float(RAND_MAX) * 2 - 1;
 	// B
-	B.resize(n);
-	for (int i = 0; i < n; i++)
-		B[i] = 0.0;
+	B.resize(1);
+	B[0] = 0.0;
 
-	int loops = 100;
-	float lr = 0.01;
+	int loops = 1000;
+	double lr = 0.01;
 	for (int loop = 0; loop < loops; loop++)
 	{
+		Eigen::VectorXd X1(2);
+		X1[0] = points[loop % n].x;
+		X1[1] = 1.0;
+
 		// A
-		Eigen::MatrixXf S = X1 * A;
-		
-		Eigen::VectorXf fs(3);
-		for (int i = 0; i < 3; i++)
-		{
-			fs[i] = 0.0;
-			for (int j = 0; j < n; j++)
-				fs[i] += S(j, i);
-			fs[i] /= n;
-		}
-
-		// Gauss
+		Eigen::VectorXd S = X1[0] * a + X1[1] * b;
+		Eigen::VectorXd SS = S;
 		for (int i = 0; i < n; i++)
-			for (int j = 0; j < 3; j++)
-				S(i, j) = gauss(S(i, j));
-
-		Eigen::VectorXf fss(3);
-		for (int i = 0; i < 3; i++)
-		{
-			fss[i] = 0.0;
-			for (int j = 0; j < n; j++)
-				fss[i] += S(j, i);
-			fss[i] /= n;
-		}
-
+			SS[i] = gauss(S[i]);
 		// W, B
-		Eigen::VectorXf SS = S * W + B; 
-		float fx = SS.sum() / SS.size();
-		float fy = Y.sum() / Y.size();
+		double fx = (SS * W + B)[0]; 
+		double fy = points[loop % n].y;
 
 		// loss
-		float loss = 0.0;
-		for (int i = 0; i < n; i++)
-			loss += 0.5 * (SS[i] - Y[i]) * (SS[i] - Y[i]);
-		loss /= n;
-		//if (loop % 100 == 0)
-			printf("%d\t%f\t%f\n", loop, fx, loss);
+		double loss = 0.5 * (fx - fy) * (fx - fy);
+		if ((loop + 1) % 10 == 0)
+		printf("%d\t%f\t%f\t%f\t%f\n", loop + 1, X1[0], fx, fy, loss);
 
-		Eigen::VectorXf kw = (fx - fy) * fss;
-		Eigen::VectorXf k0(n);
-		for (int i = 0; i < n; i++)
-			k0[i] = (fx - fy);
-
-		Eigen::VectorXf ka = (-(fx - fy)) * W.cwiseProduct(fss).cwiseProduct(fs).cwiseProduct(X);
-		Eigen::VectorXf kb = (-(fx - fy)) * W.cwiseProduct(fss).cwiseProduct(fs);
+		Eigen::VectorXd kw = (fx - fy) * SS;
+		Eigen::VectorXd k0(1); k0[0] = (fx - fy);
+		Eigen::VectorXd ka = (-(fx - fy) * X1[0]) * W.cwiseProduct(SS).cwiseProduct(S);
+		Eigen::VectorXd kb = (-(fx - fy)) * W.cwiseProduct(SS).cwiseProduct(S);
 
 		W -= lr * kw;
 		B -= lr * k0;
-
-		Eigen::VectorXf ta(3);
-		Eigen::VectorXf tb(3);
-		for (int i = 0; i < 3; i++)
-		{
-			ta[i] = A(0, i);
-			tb[i] = A(1, i);
-		}
-		ta -= lr * ka;
-		tb -= lr * kb;
-		for (int i = 0; i < 3; i++)
-		{
-			A(0, i) = ta[i];
-			A(1, i) = tb[i];
-		}
+		a -= lr * ka;
+		b -= lr * kb;
 	}
 
 }
 
 int main() {
-	//srand(time(0));
+	srand(time(0));
 	ImVector<ImVec2> t;
 	t.push_back(ImVec2(0.097, 0.186));
 	t.push_back(ImVec2(0.159, 0.107));
@@ -125,10 +83,10 @@ int main() {
 	t.push_back(ImVec2(0.656, 0.445));
 	t.push_back(ImVec2(0.770, 0.354));
 	train(t);
-	Eigen::VectorXf tt(2);
-	tt[0] = 0.41;
+	Eigen::VectorXd tt(2);
+	tt[0] = 0.097;
 	tt[1] = 1.0;
-	Eigen::VectorXf r1 = tt * A;
+	Eigen::VectorXd r1 = tt[0] * a + tt[1] * b;
 	for (int i = 0; i < W.size(); i++)
 		r1[i] = gauss(r1[i]);
 	auto r = (r1 * W)[0] + B[0];
