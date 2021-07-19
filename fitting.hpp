@@ -1,6 +1,116 @@
 #pragma once
 #include "head.hpp"
 
+void affine_forward(Eigen::MatrixXf X, Eigen::MatrixXf A);
+
+float gauss(float x) {
+    return expf(-0.5 * x * x);
+}
+
+std::vector<float> losses;
+void Test(const ImVector<ImVec2>& points) {
+    int n = points.size();
+    // Y
+    Eigen::VectorXf Y(n);
+    for (int i = 0; i < n; i++)
+        Y[i] = points[i].y;
+    Eigen::VectorXf XX(n);
+    for (int i = 0; i < n; i++)
+        XX[i] = points[i].x;
+
+    // X
+    Eigen::MatrixXf X(n, 2);
+    for (int i = 0; i < n; i++)
+    {
+        X(i, 0) = points[i].x;
+        X(i, 1) = 1.0;
+    }
+
+    // A
+    Eigen::MatrixXf A(2, n);
+    for (int i = 0; i < 2; i++)
+        for (int j = 0; j < n; j++)
+            A(i, j) = rand() / float(RAND_MAX) * 2 - 1;
+    // W
+    Eigen::VectorXf W(n);
+    for (int i = 0; i < n; i++)
+        W[i] = rand() / float(RAND_MAX) * 2 - 1;
+    // B
+    Eigen::VectorXf B(n);
+    for (int i = 0; i < n; i++)
+        B[i] = rand() / float(RAND_MAX) * 2 - 1;
+
+    int loops = 100;
+    float lr = 0.01;
+    losses.clear();
+    for (int loop = 0; loop < loops; loop++)
+    {
+        // A
+        Eigen::MatrixXf S = X * A;
+
+        Eigen::VectorXf fs(n);
+        for (int i = 0; i < n; i++)
+        {
+            fs[i] = 0.0;
+            for (int j = 0; j < n; j++)
+                fs[i] += S(j, i);
+            fs[i] /= n;
+        }
+
+        // Gauss
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < n; j++)
+                S(i, j) = gauss(S(i, j));
+
+        Eigen::VectorXf fss(n);
+        for (int i = 0; i < n; i++)
+        {
+            fss[i] = 0.0;
+            for (int j = 0; j < n; j++)
+                fss[i] += S(j, i);
+            fss[i] /= n;
+        }
+
+        // W, B
+        Eigen::VectorXf SS = S * W + B;
+        float fx = SS.sum() / SS.size();
+
+        // loss
+        float loss = 0.0;
+        for (int i = 0; i < n; i++)
+            loss += 0.5 * (SS[i] - Y[i]) * (SS[i] - Y[i]);
+        loss /= n;
+        losses.push_back(loss);
+
+        Eigen::VectorXf kw = fx * fss;
+        Eigen::VectorXf k0(n);
+        for (int i = 0; i < n; i++)
+            k0[i] = fx;
+
+        Eigen::VectorXf ka = (-fx) * W.cwiseProduct(fss).cwiseProduct(fs).cwiseProduct(XX);
+        Eigen::VectorXf kb = (-fx) * W.cwiseProduct(fss).cwiseProduct(fs);
+
+        W -= lr * kw;
+        B -= lr * k0;
+
+        Eigen::VectorXf ta(n);
+        Eigen::VectorXf tb(n);
+        for (int i = 0; i < n; i++)
+        {
+            ta[i] = A(0, i);
+            tb[i] = A(1, i);
+        }
+        ta -= lr * ka;
+        tb -= lr * kb;
+        for (int i = 0; i < n; i++)
+        {
+            A(0, i) = ta[i];
+            A(1, i) = tb[i];
+        }
+    }
+
+}
+
 // InterpolationPolynomialBaseFunction
 Eigen::VectorXd interpolationPolynomial(const ImVector<ImVec2>& points) {
 	int n = points.size();
@@ -297,6 +407,8 @@ void fittingCanvas() {
                 tempP = ImVec2(x, y);
             }
         }
+
+        Test(points);
     }
     draw_list->PopClipRect();
     ImGui::End();
@@ -304,5 +416,13 @@ void fittingCanvas() {
     ImGui::Begin("log");
     for (int i = 0; i < points.size(); i++)
         ImGui::Text("%f...%f", points[i].x, points[i].y);
+        
+    ImGui::NewLine();
+    ImGui::NewLine();
+    ImGui::NewLine();
+    for (int i = 0; i < losses.size(); i++)
+        ImGui::Text("%f.loss: ...%f", i + 1, losses[i]);
+
+
     ImGui::End();
 }
