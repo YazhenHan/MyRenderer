@@ -15,29 +15,29 @@
 #include <iostream>
 #include <vector>
 
-float background_color[4] = { 0.0, 0.0, 0.0, 0.0 };
+static float background_color[4] = { 0.0, 0.0, 0.0, 0.0 };
 
-void error_callback(int error, const char* description)
+static void error_callback(int error, const char* description)
 {
     fprintf(stderr, "Error: %s\n", description);
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
 }
 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 
-GLFWwindow* createWindow() {
+static GLFWwindow* createWindow() {
     glfwSetErrorCallback(error_callback);
     // glfw: initialize and configure
     // ------------------------------
@@ -76,7 +76,7 @@ GLFWwindow* createWindow() {
     return window;
 }
 
-void imguiBeforeLoop(GLFWwindow* window) {
+static void imguiBeforeLoop(GLFWwindow* window) {
     // Setup Dear ImGui Context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -88,7 +88,7 @@ void imguiBeforeLoop(GLFWwindow* window) {
     ImGui_ImplOpenGL3_Init("#version 330");
 }
 
-void cleanUp(GLFWwindow* window) {
+static void cleanUp(GLFWwindow* window) {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
@@ -96,7 +96,7 @@ void cleanUp(GLFWwindow* window) {
     glfwTerminate();
 }
 
-int jiecheng(int m)
+static int jiecheng(int m)
 {
     if (m == 0)
         return 1;
@@ -109,7 +109,7 @@ int jiecheng(int m)
     return res;
 }
 
-int zuhe(int m, int n)
+static int zuhe(int m, int n)
 {
     if (n == 0 || m == n)
         return 1;

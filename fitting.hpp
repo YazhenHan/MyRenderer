@@ -1,115 +1,4 @@
 #pragma once
-#include "head.hpp"
-
-void affine_forward(Eigen::MatrixXf X, Eigen::MatrixXf A);
-
-float gauss(float x) {
-    return expf(-0.5 * x * x);
-}
-
-std::vector<float> losses;
-void Test(const ImVector<ImVec2>& points) {
-    int n = points.size();
-    // Y
-    Eigen::VectorXf Y(n);
-    for (int i = 0; i < n; i++)
-        Y[i] = points[i].y;
-    Eigen::VectorXf XX(n);
-    for (int i = 0; i < n; i++)
-        XX[i] = points[i].x;
-
-    // X
-    Eigen::MatrixXf X(n, 2);
-    for (int i = 0; i < n; i++)
-    {
-        X(i, 0) = points[i].x;
-        X(i, 1) = 1.0;
-    }
-
-    // A
-    Eigen::MatrixXf A(2, n);
-    for (int i = 0; i < 2; i++)
-        for (int j = 0; j < n; j++)
-            A(i, j) = rand() / float(RAND_MAX) * 2 - 1;
-    // W
-    Eigen::VectorXf W(n);
-    for (int i = 0; i < n; i++)
-        W[i] = rand() / float(RAND_MAX) * 2 - 1;
-    // B
-    Eigen::VectorXf B(n);
-    for (int i = 0; i < n; i++)
-        B[i] = rand() / float(RAND_MAX) * 2 - 1;
-
-    int loops = 100;
-    float lr = 0.01;
-    losses.clear();
-    for (int loop = 0; loop < loops; loop++)
-    {
-        // A
-        Eigen::MatrixXf S = X * A;
-
-        Eigen::VectorXf fs(n);
-        for (int i = 0; i < n; i++)
-        {
-            fs[i] = 0.0;
-            for (int j = 0; j < n; j++)
-                fs[i] += S(j, i);
-            fs[i] /= n;
-        }
-
-        // Gauss
-        for (int i = 0; i < n; i++)
-            for (int j = 0; j < n; j++)
-                S(i, j) = gauss(S(i, j));
-
-        Eigen::VectorXf fss(n);
-        for (int i = 0; i < n; i++)
-        {
-            fss[i] = 0.0;
-            for (int j = 0; j < n; j++)
-                fss[i] += S(j, i);
-            fss[i] /= n;
-        }
-
-        // W, B
-        Eigen::VectorXf SS = S * W + B;
-        float fx = SS.sum() / SS.size();
-
-        // loss
-        float loss = 0.0;
-        for (int i = 0; i < n; i++)
-            loss += 0.5 * (SS[i] - Y[i]) * (SS[i] - Y[i]);
-        loss /= n;
-        losses.push_back(loss);
-
-        Eigen::VectorXf kw = fx * fss;
-        Eigen::VectorXf k0(n);
-        for (int i = 0; i < n; i++)
-            k0[i] = fx;
-
-        Eigen::VectorXf ka = (-fx) * W.cwiseProduct(fss).cwiseProduct(fs).cwiseProduct(XX);
-        Eigen::VectorXf kb = (-fx) * W.cwiseProduct(fss).cwiseProduct(fs);
-
-        W -= lr * kw;
-        B -= lr * k0;
-
-        Eigen::VectorXf ta(n);
-        Eigen::VectorXf tb(n);
-        for (int i = 0; i < n; i++)
-        {
-            ta[i] = A(0, i);
-            tb[i] = A(1, i);
-        }
-        ta -= lr * ka;
-        tb -= lr * kb;
-        for (int i = 0; i < n; i++)
-        {
-            A(0, i) = ta[i];
-            A(1, i) = tb[i];
-        }
-    }
-
-}
 
 // InterpolationPolynomialBaseFunction
 Eigen::VectorXd interpolationPolynomial(const ImVector<ImVec2>& points) {
@@ -200,69 +89,160 @@ Eigen::VectorXf approximation_RidgeRegression(const ImVector<ImVec2>& points, in
 	return (normal_equation.transpose() * normal_equation + I * lambda).inverse() * normal_equation.transpose() * y;
 }
 
+double gauss(double x) {
+    return exp(-0.5 * x * x);
+}
+
+Eigen::VectorXd a;
+Eigen::VectorXd b;
+Eigen::VectorXd W;
+double B;
+std::vector<double> losses;
+static bool train(const ImVector<ImVec2>& points, const int m, const int loops, const double lr, const int batch) {
+    int n = points.size();
+
+    a.resize(m); b.resize(m); W.resize(m); losses.clear();
+    for (int i = 0; i < m; i++)
+    {
+        a[i] = rand() / double(RAND_MAX) * 2.0 - 1.0;
+        b[i] = 0.0;
+        W[i] = rand() / double(RAND_MAX) * 2.0 - 1.0;
+    }
+    B = 0.0;
+
+    for (int loop = 0; loop < loops / n * n; loop++)
+    {
+        int rp = rand() % n;
+        double X = 0.0, Y = 0.0;
+        for (int i = 0; i < batch; i++)
+        {
+            X += points[(rp + i) % n].x;
+            Y += points[(rp + i) % n].y;
+        }
+        X /= batch;
+        Y /= batch;
+
+        Eigen::VectorXd S = X * a + b;
+        Eigen::VectorXd SS(m);
+        for (int i = 0; i < m; i++)
+            SS[i] = gauss(S[i]);
+        double fx = (SS.transpose() * W)[0] + B;
+
+        double loss = 0.0;
+        for (int i = 0; i < n; i++)
+        {
+            double x = points[i].x;
+            Eigen::VectorXd r1 = x * a + b;
+            for (int i = 0; i < r1.size(); i++)
+                r1[i] = gauss(r1[i]);
+            double y = (r1.transpose() * W)[0] + B;
+            loss += 0.5 * (y - Y) * (y - Y);
+        }
+        loss /= n;
+        losses.push_back(loss);
+        /*if (loop % (loops / 10) == 0)
+            printf("%d\t%f\n", loop / (loops / 10), loss);*/
+
+        Eigen::VectorXd kw = (fx - Y) * SS;
+        double k0 = fx - Y;
+        Eigen::VectorXd ka = -(fx - Y) * X * W.cwiseProduct(SS).cwiseProduct(S);
+        Eigen::VectorXd kb = -(fx - Y) * W.cwiseProduct(SS).cwiseProduct(S);
+        W -= lr * kw;
+        B -= lr * k0;
+        a -= lr * ka;
+        b -= lr * kb;
+    }
+
+    return true;
+}
+
 void fittingCanvas() {
     ImGui::Begin("canvas");
     static ImVector<ImVec2> points;
+    static ImVector<ImVec2> points2;
     static ImVec2 scrolling(0.0f, 0.0f);
     static bool opt_enable_grid = true;
     static bool opt_enable_context_menu = true;
     static bool adding_line = false;
 
-    static float sigma = 10.0;
-    static bool b0 = true;
+    static float sigma = 1.0;
     static int order = 3;
-    static bool polynomialI = false, lagrangeI = false, gaussI = false, bernsteinI = false, leastSquareA = false, ridgeRegressionA = false;
+    static bool polynomialI = false, lagrangeI = false, gaussI = false, bernsteinI = false, 
+        leastSquareA = false, ridgeRegressionA = false, neuralnetworkA = false;
     static float lambda = 0.1;
+    static int m = 10, loops = 10000, batch = 1;
+    static float lr = 0.1;
 
-    ImGui::Checkbox("Enable grid", &opt_enable_grid);
-    ImGui::Checkbox("Enable context menu", &opt_enable_context_menu);
-    ImGui::Checkbox("Polynomial", &polynomialI); ImGui::SameLine();
-    ImGui::Checkbox("Lagrange", &lagrangeI); ImGui::SameLine();
-    ImGui::Checkbox("Gauss", &gaussI); ImGui::SameLine();
-    ImGui::Checkbox("Bernstein", &bernsteinI); ImGui::SameLine();
-    ImGui::Checkbox("LeastSquare", &leastSquareA); ImGui::SameLine();
-    ImGui::Checkbox("RidgeRegression", &ridgeRegressionA);
-    ImGui::SliderFloat("sigma", &sigma, 1.0, 200.0);
-    ImGui::Checkbox("b0", &b0);
-    ImGui::SliderInt("Least Square", &order, 0, 20);
-    ImGui::SliderFloat("lambda", &lambda, 0.0, 0.2);
-    ImGui::Text("Mouse Left: drag to add lines,\nMouse Right: drag to scroll, click for context menu.");
+    ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
+    if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags))
+    {
+        if (ImGui::BeginTabItem("Interpolation"))
+        {
+            ImGui::NewLine();
+            ImGui::Checkbox("Polynomial", &polynomialI); ImGui::SameLine();
+            ImGui::Checkbox("Lagrange", &lagrangeI); ImGui::SameLine();
+            ImGui::Checkbox("Bernstein", &bernsteinI); ImGui::SameLine();
+            ImGui::Checkbox("Gauss", &gaussI);
+            ImGui::NewLine();
+            ImGui::SliderFloat("sigma", &sigma, 1.0, 200.0);
+            ImGui::NewLine();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Approach"))
+        {
+            ImGui::NewLine();
+            ImGui::Checkbox("LeastSquare", &leastSquareA); ImGui::SameLine();
+            ImGui::Checkbox("RidgeRegression", &ridgeRegressionA);
+            ImGui::NewLine();
+            ImGui::SliderInt("Least Square", &order, 0, 20);
+            ImGui::SliderFloat("lambda", &lambda, 0.0, 0.2);
+            ImGui::NewLine();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Neural Network"))
+        {
+            ImGui::SliderFloat("Step size", &lr, 0.0, 0.3);
+            ImGui::SliderInt("Loops", &loops, 100, 30000);
+            ImGui::SliderInt("Hidden layer size", &m, 3, 300);
+            ImGui::SliderInt("Batch size", &batch, 1, points.size());
+            if (ImGui::Button("Train") && points.size() > 1)
+            {
+                neuralnetworkA = false;
+                points2.resize(points.size());
+                for (int i = 0; i < points.size(); i++)
+                    points2[i] = ImVec2(points[i].x / 100.0, points[i].y / 100.0);
+                neuralnetworkA = train(points2, m, loops, lr, batch);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Clear"))
+                neuralnetworkA = false;
+            ImGui::EndTabItem();
+        }
+        ImGui::EndTabBar();
+    }
 
-    // Using InvisibleButton() as a convenience 1) it will advance the layout cursor and 2) allows us to use IsItemHovered()/IsItemActive()
     ImVec2 canvas_p0 = ImGui::GetCursorScreenPos();      // ImDrawList API uses screen coordinates!
-
     ImVec2 canvas_sz = ImGui::GetContentRegionAvail();   // Resize canvas to what's available
     if (canvas_sz.x < 50.0f) canvas_sz.x = 50.0f;
     if (canvas_sz.y < 50.0f) canvas_sz.y = 50.0f;
     ImVec2 canvas_p1 = ImVec2(canvas_p0.x + canvas_sz.x, canvas_p0.y + canvas_sz.y);
-
-    // Draw border and background color
     ImGuiIO& io = ImGui::GetIO();
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     draw_list->AddRectFilled(canvas_p0, canvas_p1, IM_COL32(0, 0, 0, 255));
     draw_list->AddRect(canvas_p0, canvas_p1, IM_COL32(0, 255, 0, 255));
-
-    // This will catch our interactions
     ImGui::InvisibleButton("canvas", canvas_sz, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
     const bool is_active = ImGui::IsItemActive();   // Held
     const bool is_clicked = ImGui::IsItemClicked();
     const ImVec2 origin(canvas_p0.x + scrolling.x, canvas_p0.y + scrolling.y); // Lock scrolled origin
     const ImVec2 mouse_pos_in_canvas(io.MousePos.x - origin.x, io.MousePos.y - origin.y);
-
-    // Add first and second point
     if (is_clicked && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
         points.push_back(mouse_pos_in_canvas);
-
-    // Pan (we use a zero mouse threshold when there's no context menu)
-    // You may decide to make that threshold dynamic based on whether the mouse is hovering something etc.
     const float mouse_threshold_for_pan = opt_enable_context_menu ? -1.0f : 0.0f;
     if (is_active && ImGui::IsMouseDragging(ImGuiMouseButton_Right, mouse_threshold_for_pan))
     {
         scrolling.x += io.MouseDelta.x;
         scrolling.y += io.MouseDelta.y;
     }
-
-    // Context menu (under default mouse threshold)
     ImVec2 drag_delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right);
     if (opt_enable_context_menu && ImGui::IsMouseReleased(ImGuiMouseButton_Right) && drag_delta.x == 0.0f && drag_delta.y == 0.0f)
         ImGui::OpenPopupOnItemClick("context");
@@ -272,11 +252,9 @@ void fittingCanvas() {
             points.resize(points.size() - 2);
         adding_line = false;
         if (ImGui::MenuItem("Remove one", NULL, false, points.Size > 0)) { points.resize(points.size() - 1); }
-        if (ImGui::MenuItem("Remove all", NULL, false, points.Size > 0)) { points.clear(); }
+        if (ImGui::MenuItem("Remove all", NULL, false, points.Size > 0)) { points.clear(); neuralnetworkA = false; }
         ImGui::EndPopup();
     }
-
-    // Draw grid + all lines in the canvas
     draw_list->PushClipRect(canvas_p0, canvas_p1, true);
     if (opt_enable_grid)
     {
@@ -286,7 +264,6 @@ void fittingCanvas() {
         for (float y = fmodf(scrolling.y, GRID_STEP); y < canvas_sz.y; y += GRID_STEP)
             draw_list->AddLine(ImVec2(canvas_p0.x, canvas_p0.y + y), ImVec2(canvas_p1.x, canvas_p0.y + y), IM_COL32(200, 200, 200, 40));
     }
-
     //for (int n = 0; n + 1 < points.Size; n += 1)
         //draw_list->AddLine(ImVec2(origin.x + points[n].x, origin.y + points[n].y), ImVec2(origin.x + points[n + 1].x, origin.y + points[n + 1].y), IM_COL32(255, 255, 255, 255), 2.0f);
     for (int n = 0; n < points.Size; n++)
@@ -318,38 +295,6 @@ void fittingCanvas() {
                     y += an[j] * gauss(x, points[j - 1].x, sigma);
                 //draw_list->AddRectFilled(ImVec2(origin.x + x * 1000 - 1.0, origin.y + y * 1000 - 1.0), ImVec2(origin.x + x * 1000 + 1.0, origin.y + y * 1000 + 1.0), IM_COL32(0, 255, 255, 255));
                 draw_list->AddLine(ImVec2(origin.x + tempP.x, origin.y + tempP.y), ImVec2(origin.x + x, origin.y + y), IM_COL32(0, 255, 0, 255));
-                tempP = ImVec2(x, y);
-            }
-        }
-
-        if (leastSquareA) {
-            Eigen::VectorXf an = approximation_LeastSquare(points, order);
-            int x = points[0].x, y = 0;
-            for (int j = 0; j <= order; j++)
-                y += an[j] * pow(x, j);
-            ImVec2 tempP(x, y);
-            for (int x = points[0].x + 1; x <= points.back().x; x++) {
-                int y = 0;
-                for (int j = 0; j <= order; j++)
-                    y += an[j] * pow(x, j);
-                //draw_list->AddRectFilled(ImVec2(origin.x + x - 1.0, origin.y + y - 1.0), ImVec2(origin.x + x + 1.0, origin.y + y + 1.0), IM_COL32(255, 255, 0, 255));
-                draw_list->AddLine(ImVec2(origin.x + tempP.x, origin.y + tempP.y), ImVec2(origin.x + x, origin.y + y), IM_COL32(255, 255, 0, 255));
-                tempP = ImVec2(x, y);
-            }
-        }
-
-        if (ridgeRegressionA) {
-            Eigen::VectorXf an = approximation_RidgeRegression(points, order, lambda);
-            int x = points[0].x, y = 0;
-            for (int j = 0; j <= order; j++)
-                y += an[j] * pow(x, j);
-            ImVec2 tempP(x, y);
-            for (int x = points[0].x + 1; x <= points.back().x; x++) {
-                int y = 0;
-                for (int j = 0; j <= order; j++)
-                    y += an[j] * pow(x, j);
-                //draw_list->AddRectFilled(ImVec2(origin.x + x - 1.0, origin.y + y - 1.0), ImVec2(origin.x + x + 1.0, origin.y + y + 1.0), IM_COL32(255, 255, 0, 255));
-                draw_list->AddLine(ImVec2(origin.x + tempP.x, origin.y + tempP.y), ImVec2(origin.x + x, origin.y + y), IM_COL32(255, 0, 255, 255));
                 tempP = ImVec2(x, y);
             }
         }
@@ -408,21 +353,67 @@ void fittingCanvas() {
             }
         }
 
-        Test(points);
+        if (leastSquareA) {
+            Eigen::VectorXf an = approximation_LeastSquare(points, order);
+            int x = points[0].x, y = 0;
+            for (int j = 0; j <= order; j++)
+                y += an[j] * pow(x, j);
+            ImVec2 tempP(x, y);
+            for (int x = points[0].x + 1; x <= points.back().x; x++) {
+                int y = 0;
+                for (int j = 0; j <= order; j++)
+                    y += an[j] * pow(x, j);
+                //draw_list->AddRectFilled(ImVec2(origin.x + x - 1.0, origin.y + y - 1.0), ImVec2(origin.x + x + 1.0, origin.y + y + 1.0), IM_COL32(255, 255, 0, 255));
+                draw_list->AddLine(ImVec2(origin.x + tempP.x, origin.y + tempP.y), ImVec2(origin.x + x, origin.y + y), IM_COL32(255, 255, 0, 255));
+                tempP = ImVec2(x, y);
+            }
+        }
+
+        if (ridgeRegressionA) {
+            Eigen::VectorXf an = approximation_RidgeRegression(points, order, lambda);
+            int x = points[0].x, y = 0;
+            for (int j = 0; j <= order; j++)
+                y += an[j] * pow(x, j);
+            ImVec2 tempP(x, y);
+            for (int x = points[0].x + 1; x <= points.back().x; x++) {
+                int y = 0;
+                for (int j = 0; j <= order; j++)
+                    y += an[j] * pow(x, j);
+                //draw_list->AddRectFilled(ImVec2(origin.x + x - 1.0, origin.y + y - 1.0), ImVec2(origin.x + x + 1.0, origin.y + y + 1.0), IM_COL32(255, 255, 0, 255));
+                draw_list->AddLine(ImVec2(origin.x + tempP.x, origin.y + tempP.y), ImVec2(origin.x + x, origin.y + y), IM_COL32(255, 0, 255, 255));
+                tempP = ImVec2(x, y);
+            }
+        }
+
+        if (neuralnetworkA) {
+            double x = points2[0].x;
+            Eigen::VectorXd r1 = x * a + b;
+            for (int i = 0; i < r1.size(); i++)
+                r1[i] = gauss(r1[i]);
+            double y = (r1.transpose() * W)[0] + B;
+            ImVec2 tempP(x, y);
+            for (double x = points2[0].x + 0.01; x <= points2.back().x; x += 0.01) {
+                r1 = x * a + b;
+                for (int i = 0; i < r1.size(); i++)
+                	r1[i] = gauss(r1[i]);
+                double y = (r1.transpose() * W)[0] + B;
+                //draw_list->AddRectFilled(ImVec2(origin.x + x * 100 - 1.0, origin.y + y * 100 - 1.0), ImVec2(origin.x + x * 100 + 1.0, origin.y + y * 100 + 1.0), IM_COL32(0, 255, 0, 255));
+                draw_list->AddLine(ImVec2(origin.x + tempP.x * 100, origin.y + tempP.y * 100), ImVec2(origin.x + x * 100, origin.y + y * 100), IM_COL32(179, 63, 244, 255));
+                tempP = ImVec2(x, y);
+            }
+        }
     }
     draw_list->PopClipRect();
     ImGui::End();
 
-    ImGui::Begin("log");
+    ImGui::Begin("points:");
     for (int i = 0; i < points.size(); i++)
         ImGui::Text("%f...%f", points[i].x, points[i].y);
-        
-    ImGui::NewLine();
-    ImGui::NewLine();
-    ImGui::NewLine();
+    ImGui::End();
+
+    ImGui::Begin("neural network:");
     for (int i = 0; i < losses.size(); i++)
-        ImGui::Text("%f.loss: ...%f", i + 1, losses[i]);
-
-
+        if (i % (loops / 10) == 0)
+            ImGui::Text("%d...%f", i / (loops / 10) + 1, losses[i]);
     ImGui::End();
 }
