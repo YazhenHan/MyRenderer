@@ -34,9 +34,12 @@ public:
     string directory;
     bool gammaCorrection;
 
+    Model() {}
+
     // constructor, expects a filepath to a 3D model.
     Model(string const& path, bool gamma = false) : gammaCorrection(gamma)
     {
+
         loadModel(path);
     }
 
@@ -83,7 +86,6 @@ private:
         {
             processNode(node->mChildren[i], scene);
         }
-
     }
 
     Mesh processMesh(aiMesh* mesh, const aiScene* scene)

@@ -23,8 +23,25 @@
     <ClInclude Include="head.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="fitting.hpp">
+    <ClInclude Include="camera.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="shader.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="mesh.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="model.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="model_loading.vs">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="model_loading.fs">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>

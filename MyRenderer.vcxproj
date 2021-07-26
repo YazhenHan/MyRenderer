@@ -142,8 +142,15 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="fitting.hpp" />
+    <ClInclude Include="camera.hpp" />
     <ClInclude Include="head.hpp" />
+    <ClInclude Include="mesh.hpp" />
+    <ClInclude Include="model.hpp" />
+    <ClInclude Include="shader.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="model_loading.fs" />
+    <None Include="model_loading.vs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

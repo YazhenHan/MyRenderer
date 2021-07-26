@@ -15,15 +15,36 @@
 #include <iostream>
 #include <vector>
 
-static float background_color[4] = { 0.0, 0.0, 0.0, 0.0 };
+#include "camera.hpp"
+#include "model.hpp"
+#include "shader.hpp"
+
+#include <windows.h>
+#include <shobjidl.h>
+
+#include <stdlib.h>
+#include <string>
+
+#include "atlbase.h"
+#include "atlstr.h"
+#include "comutil.h"
+
+const unsigned int SCR_WIDTH = 1200;
+const unsigned int SCR_HEIGHT = 800;
+Camera camera(glm::vec3(0.0f, 0.0f, 10.0f));
+float lastX = SCR_WIDTH / 2.0f;
+float lastY = SCR_HEIGHT / 2.0f;
+bool firstMouse = true;
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+bool mouse_right = false;
+bool mouse_left = false;
 
 static void error_callback(int error, const char* description)
 {
     fprintf(stderr, "Error: %s\n", description);
 }
 
-// glfw: whenever the window size changed (by OS or user resize) this callback function executes
-// ---------------------------------------------------------------------------------------------
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     // make sure the viewport matches the new window dimensions; note that width and 
@@ -31,16 +52,105 @@ static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+void processInput(GLFWwindow* window)
 {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.ProcessKeyboard(FORWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.ProcessKeyboard(BACKWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.ProcessKeyboard(LEFT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.ProcessKeyboard(RIGHT, deltaTime);
 }
 
-static GLFWwindow* createWindow() {
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+    if (!mouse_right)
+        return;
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+    lastX = xpos;
+    lastY = ypos;
+
+    camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    camera.ProcessMouseScroll(yoffset);
+}
+
+void mousebutton_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    if (action == GLFW_PRESS && button == GLFW_MOUSE_BUTTON_LEFT)
+        mouse_left = true;
+    else if (action == GLFW_RELEASE && button == GLFW_MOUSE_BUTTON_LEFT)
+        mouse_left = false;
+    if (action == GLFW_PRESS && button == GLFW_MOUSE_BUTTON_RIGHT)
+    {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        mouse_right = true;
+        firstMouse = true;
+    }
+    else if (action == GLFW_RELEASE && button == GLFW_MOUSE_BUTTON_RIGHT)
+    {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        mouse_right = false;
+    }
+}
+
+unsigned int loadTexture(char const* path)
+{
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+
+    int width, height, nrComponents;
+    unsigned char* data = stbi_load(path, &width, &height, &nrComponents, 0);
+    if (data)
+    {
+        GLenum format;
+        if (nrComponents == 1)
+            format = GL_RED;
+        else if (nrComponents == 3)
+            format = GL_RGB;
+        else if (nrComponents == 4)
+            format = GL_RGBA;
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_image_free(data);
+    }
+    else
+    {
+        std::cout << "Texture failed to load at path: " << path << std::endl;
+        stbi_image_free(data);
+    }
+
+    return textureID;
+}
+
+GLFWwindow* createWindow() {
     glfwSetErrorCallback(error_callback);
-    // glfw: initialize and configure
-    // ------------------------------
+
     glfwInit();
     if (!glfwInit())
     {
@@ -52,9 +162,7 @@ static GLFWwindow* createWindow() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
 
-    // glfw window creation
-    // --------------------
-    GLFWwindow* window = glfwCreateWindow(1, 1, "MyRenderer", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "MyRenderer", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -63,10 +171,10 @@ static GLFWwindow* createWindow() {
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetKeyCallback(window, key_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
+    glfwSetMouseButtonCallback(window, mousebutton_callback);
 
-    // glad: load all OpenGL function pointers
-    // ---------------------------------------
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         std::cout << "Failed to initialize GLAD" << std::endl;
@@ -76,7 +184,7 @@ static GLFWwindow* createWindow() {
     return window;
 }
 
-static void imguiBeforeLoop(GLFWwindow* window) {
+void imguiBeforeLoop(GLFWwindow* window) {
     // Setup Dear ImGui Context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -88,7 +196,7 @@ static void imguiBeforeLoop(GLFWwindow* window) {
     ImGui_ImplOpenGL3_Init("#version 330");
 }
 
-static void cleanUp(GLFWwindow* window) {
+void cleanUp(GLFWwindow* window) {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
@@ -96,22 +204,53 @@ static void cleanUp(GLFWwindow* window) {
     glfwTerminate();
 }
 
-static int jiecheng(int m)
-{
-    if (m == 0)
-        return 1;
-    int res = 1;
-    while (m >= 1)
+string inputModel() {
+    string res;
+    HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+    IFileOpenDialog* pFileOpen;
+
+    // Create the FileOpenDialog object.
+    hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
+
+    if (SUCCEEDED(hr))
     {
-        res *= m;
-        m--;
+        // Show the Open dialog box.
+        hr = pFileOpen->Show(NULL);
+
+        // Get the file name from the dialog box.
+        if (SUCCEEDED(hr))
+        {
+            IShellItem* pItem;
+            hr = pFileOpen->GetResult(&pItem);
+            if (SUCCEEDED(hr))
+            {
+                PWSTR pszFilePath;
+                hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+
+                size_t origsize = wcslen(pszFilePath) + 1;
+                size_t convertedChars = 0;
+
+                const size_t newsize = origsize * 2;
+                char* nstring = new char[newsize];
+
+                wcstombs_s(&convertedChars, nstring, newsize, pszFilePath, _TRUNCATE);
+
+                res = nstring;
+                // Display the file name to the user.
+                /*if (SUCCEEDED(hr))
+                {
+                    MessageBoxW(NULL, pszFilePath, L"File Path", MB_OK);
+                    CoTaskMemFree(pszFilePath);
+                }*/
+                pItem->Release();
+            }
+        }
+        pFileOpen->Release();
+    }
+    CoUninitialize();
+    for (auto& c : res) {
+        if (c == '\\')
+            c = '/';
     }
     return res;
-}
-
-static int zuhe(int m, int n)
-{
-    if (n == 0 || m == n)
-        return 1;
-    return jiecheng(m) / (jiecheng(n) * jiecheng(n - m));
 }
