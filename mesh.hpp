@@ -11,20 +11,10 @@
 
 #include <string>
 #include <vector>
-using namespace std;
 
-struct Vertex {
-    // position
-    glm::vec3 Position;
-    // normal
-    glm::vec3 Normal;
-    // texCoords
-    glm::vec2 TexCoords;
-    // tangent
-    glm::vec3 Tangent;
-    // bitangent
-    glm::vec3 Bitangent;
-};
+#include "halfedge.hpp"
+
+using namespace std;
 
 struct Texture {
     unsigned int id;
@@ -40,6 +30,8 @@ public:
     vector<Texture>      textures;
     unsigned int VAO;
 
+    HalfEdge halfEdge;
+
     // constructor
     Mesh(vector<Vertex> vertices, vector<unsigned int> indices, vector<Texture> textures)
     {
@@ -51,6 +43,82 @@ public:
         setupMesh();
     }
 
+    void toHalfEdge() {
+        for (unsigned int i = 0; i < indices.size(); i += 3) {
+            unsigned int first = indices[i], second = indices[i + 1], third = indices[i + 2];
+            HE_edge* edge1 = new HE_edge(), * edge2 = new HE_edge(), * edge3 = new HE_edge();
+            HE_vert* vert1 = nullptr, * vert2 = nullptr, * vert3 = nullptr;
+            HE_face* face = new HE_face();
+
+            bool flag1 = false, flag2 = false, flag3 = false;
+            for (auto& vert : halfEdge.verts) {
+                if (first == vert->indice) { vert1 = vert; flag1 = true; }
+                if (second == vert->indice) { vert2 = vert; flag2 = true; }
+                if (third == vert->indice) { vert3 = vert; flag3 = true; }
+            }
+            if (!flag1) { vert1 = new HE_vert(); vert1->indice = first; vert1->vertex = vertices[first]; vert1->edge = edge1; halfEdge.verts.push_back(vert1); }
+            if (!flag2) { vert2 = new HE_vert(); vert2->indice = second; vert2->vertex = vertices[second]; vert2->edge = edge2; halfEdge.verts.push_back(vert2); }
+            if (!flag3) { vert3 = new HE_vert(); vert3->indice = third; vert3->vertex = vertices[third]; vert3->edge = edge3; halfEdge.verts.push_back(vert3); }
+            
+            edge1->vert0 = vert1; edge1->vert = vert2; edge1->pair = nullptr; edge1->face = face; edge1->next = edge2;
+            edge2->vert0 = vert2; edge2->vert = vert3; edge2->pair = nullptr; edge2->face = face; edge2->next = edge3;
+            edge3->vert0 = vert3; edge3->vert = vert1; edge3->pair = nullptr; edge3->face = face; edge3->next = edge1;
+            face->edge = edge1;
+            for (auto& edge : halfEdge.edges) {
+                if (edge1->vert0->indice == edge->vert->indice && edge1->vert->indice == edge->vert0->indice) {
+                    edge1->pair = edge; edge->pair = edge1;
+                }
+                if (edge2->vert0->indice == edge->vert->indice && edge2->vert->indice == edge->vert0->indice) {
+                    edge2->pair = edge; edge->pair = edge2;
+                }
+                if (edge3->vert0->indice == edge->vert->indice && edge3->vert->indice == edge->vert0->indice) {
+                    edge3->pair = edge; edge->pair = edge3;
+                }
+            }
+            halfEdge.edges.push_back(edge1); halfEdge.edges.push_back(edge2); halfEdge.edges.push_back(edge3);
+            halfEdge.faces.push_back(face);
+        }
+    }
+
+    void toGLMesh() {
+        vertices.clear();
+        indices.clear();
+        for (auto& face : halfEdge.faces) {
+            
+
+        }
+    }
+
+    void loopSub() {
+        std::vector<Vertex> vns;
+        for (auto& face : halfEdge.faces) {
+            auto edge = face->edge;
+            do
+            {
+                Vertex va = edge->vert0->vertex, vb = edge->vert->vertex;
+                Vertex vc = edge->next->vert->vertex, vd;
+                if (edge->pair != nullptr) vd = edge->pair->next->vert->vertex;
+                Vertex v = (va + vb) * (3.0 / 8.0) + (vc + vd) * (1.0 / 8.0);
+                vns.push_back(v);
+                edge = edge->next;
+            } while (edge != face->edge);
+        }
+        std::vector<Vertex> vos;
+        for (auto* vert : halfEdge.verts) {
+            Vertex vo = vert->vertex;
+            auto edge = vert->edge;
+            Vertex vn;
+            int n = 0;
+            do
+            {
+                vn = vn + edge->vert->vertex;
+                edge = edge->pair->next;
+            } while (edge != vert->edge);
+            float u = n == 3 ? 3.0 / 16.0 : 3.0 / (8.0 * n);
+            Vertex v = vo * (1.0 - n * u) + vn * u;
+            vos.push_back(v);
+        }
+    }
     // render the mesh
     void Draw(Shader& shader)
     {

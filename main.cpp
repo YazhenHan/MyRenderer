@@ -54,6 +54,10 @@ int main()
             if (path.size() != 0)
                 ourModel = Model(path);
         }
+        if (ImGui::Button("toHalfEdge")) {
+            ourModel.toHalfEdge();
+            std::cout << "No error!" << std::endl;
+        }
         ImGui::End();
 
         ImGui::Render();

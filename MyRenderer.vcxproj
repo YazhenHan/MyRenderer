@@ -143,6 +143,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.hpp" />
+    <ClInclude Include="halfedge.hpp" />
     <ClInclude Include="head.hpp" />
     <ClInclude Include="mesh.hpp" />
     <ClInclude Include="model.hpp" />

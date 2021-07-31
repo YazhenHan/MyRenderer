@@ -40,12 +40,12 @@ float lastFrame = 0.0f;
 bool mouse_right = false;
 bool mouse_left = false;
 
-static void error_callback(int error, const char* description)
+void error_callback(int error, const char* description)
 {
     fprintf(stderr, "Error: %s\n", description);
 }
 
-static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
@@ -148,7 +148,7 @@ unsigned int loadTexture(char const* path)
     return textureID;
 }
 
-GLFWwindow* createWindow() {
+inline GLFWwindow* createWindow() {
     glfwSetErrorCallback(error_callback);
 
     glfwInit();
@@ -184,7 +184,7 @@ GLFWwindow* createWindow() {
     return window;
 }
 
-void imguiBeforeLoop(GLFWwindow* window) {
+inline void imguiBeforeLoop(GLFWwindow* window) {
     // Setup Dear ImGui Context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -196,7 +196,7 @@ void imguiBeforeLoop(GLFWwindow* window) {
     ImGui_ImplOpenGL3_Init("#version 330");
 }
 
-void cleanUp(GLFWwindow* window) {
+inline void cleanUp(GLFWwindow* window) {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
