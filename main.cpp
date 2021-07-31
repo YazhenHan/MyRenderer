@@ -11,7 +11,7 @@ int main()
     glEnable(GL_DEPTH_TEST);
 
     Shader modelLoadingShader("model_loading.vs", "model_loading.fs");
-    Model ourModel("C:/Users/gxucg/Documents/GitHub/MyRenderer/assets/nanosuit.obj");
+    Model ourModel("C:/Users/yazhe/Documents/GitHub/MyRenderer/assets/diablo3_pose.obj");
 
     float background_color[4] = { 1.0, 1.0, 1.0, 1.0 };
     bool wiremode = true;
@@ -56,6 +56,10 @@ int main()
         }
         if (ImGui::Button("toHalfEdge")) {
             ourModel.toHalfEdge();
+            std::cout << "No error!" << std::endl;
+        }
+        if (ImGui::Button("toGLMesh")) {
+            ourModel.toGLMesh();
             std::cout << "No error!" << std::endl;
         }
         ImGui::End();

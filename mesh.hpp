@@ -11,6 +11,7 @@
 
 #include <string>
 #include <vector>
+#include <unordered_set>
 
 #include "halfedge.hpp"
 
@@ -83,9 +84,24 @@ public:
     void toGLMesh() {
         vertices.clear();
         indices.clear();
-        for (auto& face : halfEdge.faces) {
-            
-
+        /*for (auto& face : halfEdge.faces) {
+            auto edge = face->edge;
+            do
+            {
+                vertices.push_back(edge->vert->vertex);
+                indices.push_back(vertices.size());
+                edge = edge->next;
+            } while (edge != face->edge);
+        }*/
+        for (unsigned int i = 0; i < halfEdge.faces.size() / 2; ++i) {
+            auto face = halfEdge.faces[i];
+            auto edge = face->edge;
+            do
+            {
+                vertices.push_back(edge->vert->vertex);
+                indices.push_back(vertices.size());
+                edge = edge->next;
+            } while (edge != face->edge);
         }
     }
 
@@ -117,6 +133,13 @@ public:
             float u = n == 3 ? 3.0 / 16.0 : 3.0 / (8.0 * n);
             Vertex v = vo * (1.0 - n * u) + vn * u;
             vos.push_back(v);
+        }
+        for (auto& face : halfEdge.faces) {
+            auto edge = face->edge;
+            do
+            {
+
+            } while (true);
         }
     }
     // render the mesh
