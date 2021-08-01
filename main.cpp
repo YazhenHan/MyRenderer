@@ -1,4 +1,5 @@
 #include "head.hpp"
+#include "IBL/util.h"
 
 int main()
 {
@@ -11,20 +12,24 @@ int main()
     glEnable(GL_DEPTH_TEST);
 
     Shader modelLoadingShader("model_loading.vs", "model_loading.fs");
-    Model ourModel("C:/Users/yazhe/Documents/GitHub/MyRenderer/assets/diablo3_pose.obj");
+    Model ourModel("C:/Users/gxucg/Documents/GitHub/MyRenderer/assets/african_head.obj");
 
     float background_color[4] = { 1.0, 1.0, 1.0, 1.0 };
     bool wiremode = true;
+    int faceNum = ourModel.getFaceNum();
+    unsigned int frames = 0, fps = 0;
+    float start_time = glfwGetTime();
     while (!glfwWindowShouldClose(window))
     {
+        ++frames;
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
+        if (currentFrame - start_time >= 1.0f) { fps = frames; frames = 0; start_time = currentFrame; }
 
         wiremode ? glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-        if (mouse_left && mouse_right)
-            camera.ProcessKeyboard(FORWARD, deltaTime);
+        if (mouse_left && mouse_right) camera.ProcessKeyboard(FORWARD, deltaTime);
         processInput(window);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -47,8 +52,13 @@ int main()
         ImGui::NewFrame();
 
         ImGui::Begin("settings", &wiremode, ImGuiWindowFlags_MenuBar);
+        ImGui::Text("fps: %d    spf: %f", fps, deltaTime);
         ImGui::ColorEdit4("background", background_color);
         ImGui::Checkbox("wiremode", &wiremode);
+        ImGui::Text("Face Number: %d", ourModel.getFaceNum());
+        ImGui::Text("Vertex Number: %d", ourModel.getVertexNum());
+        ImGui::Text("Mesh Number: %d", ourModel.meshes.size());
+        ImGui::Text("Texture Number: %d", ourModel.textures_loaded.size());
         if (ImGui::Button("Input Model")) {
             string path = inputModel();
             if (path.size() != 0)
@@ -56,11 +66,16 @@ int main()
         }
         if (ImGui::Button("toHalfEdge")) {
             ourModel.toHalfEdge();
-            std::cout << "No error!" << std::endl;
+            ImGui::SameLine();
+            ImGui::Text("Success!");
         }
         if (ImGui::Button("toGLMesh")) {
             ourModel.toGLMesh();
-            std::cout << "No error!" << std::endl;
+            ImGui::SameLine();
+            ImGui::Text("Success!");
+        }
+        if (ImGui::Button("LoopSubdivision")) {
+            ourModel.loopSub();
         }
         ImGui::End();
 

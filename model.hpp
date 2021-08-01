@@ -60,6 +60,23 @@ public:
             meshes[i].toGLMesh();
     }
 
+    unsigned int getFaceNum() {
+        int n = 0;
+        for (auto mesh : meshes) n += mesh.getFaceNum();
+        return n;
+    }
+
+    unsigned int getVertexNum() {
+        int n = 0;
+        for (auto mesh : meshes) n += mesh.getVertexNum();
+        return n;
+    }
+
+    void loopSub() {
+        for (unsigned int i = 0; i < meshes.size(); i++)
+            meshes[i].loopSub();
+    }
+
 private:
     // loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
     void loadModel(string const& path)

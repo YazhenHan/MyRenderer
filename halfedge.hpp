@@ -63,7 +63,6 @@ struct HE_vert
 	float y;
 	float z;*/
 	Vertex vertex;
-	unsigned int indice;
 	HE_edge* edge;
 };
 
