@@ -59,7 +59,7 @@ public:
             HE_face* face = new HE_face();
 
             bool flag1 = false, flag2 = false, flag3 = false;
-            for (auto& vert : halfEdge.verts) {
+            for (auto vert : halfEdge.verts) {
                 if (vertices[first].Position == vert->vertex.Position) { vert1 = vert; flag1 = true; }
                 if (vertices[second].Position == vert->vertex.Position) { vert2 = vert; flag2 = true; }
                 if (vertices[third].Position == vert->vertex.Position) { vert3 = vert; flag3 = true; }
@@ -86,6 +86,8 @@ public:
             halfEdge.edges.push_back(edge1); halfEdge.edges.push_back(edge2); halfEdge.edges.push_back(edge3);
             halfEdge.faces.push_back(face);
         }
+        std::cout << vertices.size() << " " << indices.size() << std::endl;
+        std::cout << halfEdge.verts.size() << " " << halfEdge.faces.size() << std::endl;
     }
 
     void toGLMesh() {
@@ -100,11 +102,20 @@ public:
                 edge = edge->next;
             } while (edge != face->edge);
         }
+        /*for (unsigned int i = 0; i < halfEdge.faces.size() / 2; ++i) {
+            auto face = halfEdge.faces[i];
+            auto edge = face->edge;
+            do
+            {
+                vertices.push_back(edge->vert->vertex);
+                indices.push_back(vertices.size() - 1);
+                edge = edge->next;
+            } while (edge != face->edge);
+        }*/
     }
 
     void loopSub() {
         std::vector<Vertex> vns;
-        std::cout << "test1" << std::endl;
         for (auto& face : halfEdge.faces) {
             auto edge = face->edge;
             do
@@ -117,9 +128,8 @@ public:
                 edge = edge->next;
             } while (edge != face->edge);
         }
-        std::cout << "test2" << std::endl;
         std::vector<Vertex> vos;
-        for (auto& vert : halfEdge.verts) {
+        for (auto* vert : halfEdge.verts) {
             Vertex vo = vert->vertex;
             auto edge = vert->edge;
             Vertex vn;
@@ -128,7 +138,7 @@ public:
             {
                 n++;
                 vn = vn + edge->vert->vertex;
-                if (edge->pair == nullptr) break;
+                if (edge->pair == nullptr) { break; }
                 edge = edge->pair->next;
             } while (edge != vert->edge);
             float u = n == 3 ? 3.0 / 16.0 : 3.0 / (8.0 * n);
@@ -137,7 +147,6 @@ public:
             v = vo * (1 - a) + vn * (a / n);
             vos.push_back(v);
         }
-        std::cout << "test3" << std::endl;
         for (int i = 0; i < vos.size(); ++i)
             halfEdge.verts[i]->vertex = vos[i];
         vertices.clear();
@@ -161,9 +170,7 @@ public:
             vertices.push_back(vns[i]); indices.push_back(vertices.size() - 1);
             i = i + 3;
         }
-        std::cout << "test4" << std::endl;
         setupMesh();
-        std::cout << "test5" << std::endl;
     }
     // render the mesh
     void Draw(Shader& shader)

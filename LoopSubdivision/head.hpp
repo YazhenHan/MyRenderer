@@ -16,8 +16,8 @@
 #include <vector>
 
 #include "camera.hpp"
-#include "shader.hpp"
 #include "model.hpp"
+#include "shader.hpp"
 
 #include <windows.h>
 #include <shobjidl.h>
@@ -54,7 +54,6 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void processInput(GLFWwindow* window)
 {
-    if (mouse_left && mouse_right) camera.ProcessKeyboard(FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
@@ -110,6 +109,43 @@ void mousebutton_callback(GLFWwindow* window, int button, int action, int mods)
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         mouse_right = false;
     }
+}
+
+unsigned int loadTexture(char const* path)
+{
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+
+    int width, height, nrComponents;
+    unsigned char* data = stbi_load(path, &width, &height, &nrComponents, 0);
+    if (data)
+    {
+        GLenum format;
+        if (nrComponents == 1)
+            format = GL_RED;
+        else if (nrComponents == 3)
+            format = GL_RGB;
+        else if (nrComponents == 4)
+            format = GL_RGBA;
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_image_free(data);
+    }
+    else
+    {
+        std::cout << "Texture failed to load at path: " << path << std::endl;
+        stbi_image_free(data);
+    }
+
+    return textureID;
 }
 
 inline GLFWwindow* createWindow() {
@@ -217,46 +253,4 @@ string inputModel() {
             c = '/';
     }
     return res;
-}
-
-inline void loopSubdivision(Model& ourModel, Shader& modelLoadingShader) {
-    ImGui::Begin("settings");
-    static bool wiremode = true;
-    static unsigned int frames = 0, fps = 0;
-    static int faceNum = ourModel.getFaceNum();
-    static float start_time = glfwGetTime();
-    wiremode ? glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    ++frames; float currentFrame = glfwGetTime(); deltaTime = currentFrame - lastFrame; lastFrame = currentFrame;
-    if (currentFrame - start_time >= 1.0f) { fps = frames; frames = 0; start_time = currentFrame; }
-    ImGui::Text("fps: %d    spf: %f", fps, deltaTime);
-    ImGui::Checkbox("wiremode", &wiremode);
-    ImGui::Text("Face Number: %d", ourModel.getFaceNum());
-    ImGui::Text("Vertex Number: %d", ourModel.getVertexNum());
-    ImGui::Text("Mesh Number: %d", ourModel.meshes.size());
-    ImGui::Text("Texture Number: %d", ourModel.textures_loaded.size());
-    if (ImGui::Button("Input Model")) {
-        string path = inputModel();
-        if (path.size() != 0)
-            ourModel = Model(path);
-    }
-    if (ImGui::Button("LoopSubdivision")) {
-        ourModel.loopSub();
-    }
-    ImGui::End();
-
-    modelLoadingShader.use();
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-    glm::mat4 view = camera.GetViewMatrix();
-    modelLoadingShader.setMat4("projection", projection);
-    modelLoadingShader.setMat4("view", view);
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-    model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
-    modelLoadingShader.setMat4("model", model);
-
-    ourModel.Draw(modelLoadingShader);
-
-    ImGui::Begin("log");
-
-    ImGui::End();
 }

@@ -41,7 +41,6 @@ public:
     {
 
         loadModel(path);
-        toHalfEdge();
     }
 
     // draws the model, and thus all its meshes
@@ -52,33 +51,30 @@ public:
     }
 
     void toHalfEdge() {
-        std::cout << "Test0" << std::endl;
-        for (auto& mesh : meshes)
-            mesh.toHalfEdge();
-        std::cout << "Test1" << std::endl;
+        for (unsigned int i = 0; i < meshes.size(); i++)
+            meshes[i].toHalfEdge();
     }
 
     void toGLMesh() {
-        for (auto& mesh : meshes)
-            mesh.toGLMesh();
+        for (unsigned int i = 0; i < meshes.size(); i++)
+            meshes[i].toGLMesh();
     }
 
     unsigned int getFaceNum() {
         int n = 0;
-        for (auto& mesh : meshes) n += mesh.getFaceNum();
+        for (auto mesh : meshes) n += mesh.getFaceNum();
         return n;
     }
 
     unsigned int getVertexNum() {
         int n = 0;
-        for (auto& mesh : meshes) n += mesh.getVertexNum();
+        for (auto mesh : meshes) n += mesh.getVertexNum();
         return n;
     }
 
     void loopSub() {
-        for (auto& mesh : meshes)
-            mesh.loopSub();
-        //toHalfEdge();
+        for (unsigned int i = 0; i < meshes.size(); i++)
+            meshes[i].loopSub();
     }
 
 private:
