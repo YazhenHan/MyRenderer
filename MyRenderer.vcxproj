@@ -150,8 +150,10 @@
     <ClInclude Include="shader.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="line.fs" />
     <None Include="model_loading.fs" />
     <None Include="model_loading.vs" />
+    <None Include="point.fs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

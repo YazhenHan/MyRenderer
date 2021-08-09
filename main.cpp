@@ -11,6 +11,8 @@ int main()
     glEnable(GL_DEPTH_TEST);
 
     Shader modelLoadingShader("model_loading.vs", "model_loading.fs");
+    Shader pointShader("model_loading.vs", "point.fs");
+    Shader lineShader("model_loading.vs", "line.fs");
     Model ourModel("C:/Users/gxucg/Documents/GitHub/MyRenderer/assets/african_head.obj");
 
     while (!glfwWindowShouldClose(window))
@@ -24,7 +26,7 @@ int main()
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        loopSubdivision(ourModel, modelLoadingShader);
+        qemSimplification(ourModel, modelLoadingShader, pointShader, lineShader);
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

@@ -52,10 +52,8 @@ public:
     }
 
     void toHalfEdge() {
-        std::cout << "Test0" << std::endl;
         for (auto& mesh : meshes)
             mesh.toHalfEdge();
-        std::cout << "Test1" << std::endl;
     }
 
     void toGLMesh() {
@@ -78,7 +76,13 @@ public:
     void loopSub() {
         for (auto& mesh : meshes)
             mesh.loopSub();
-        //toHalfEdge();
+        toHalfEdge();
+    }
+
+    void qemSim() {
+        for (auto& mesh : meshes)
+            mesh.qemSim();
+        toHalfEdge();
     }
 
 private:

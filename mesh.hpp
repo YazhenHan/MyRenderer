@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <unordered_set>
+#include <Eigen/Dense>
 
 #include "halfedge.hpp"
 
@@ -104,7 +105,6 @@ public:
 
     void loopSub() {
         std::vector<Vertex> vns;
-        std::cout << "test1" << std::endl;
         for (auto& face : halfEdge.faces) {
             auto edge = face->edge;
             do
@@ -117,7 +117,6 @@ public:
                 edge = edge->next;
             } while (edge != face->edge);
         }
-        std::cout << "test2" << std::endl;
         std::vector<Vertex> vos;
         for (auto& vert : halfEdge.verts) {
             Vertex vo = vert->vertex;
@@ -137,7 +136,6 @@ public:
             v = vo * (1 - a) + vn * (a / n);
             vos.push_back(v);
         }
-        std::cout << "test3" << std::endl;
         for (int i = 0; i < vos.size(); ++i)
             halfEdge.verts[i]->vertex = vos[i];
         vertices.clear();
@@ -161,10 +159,55 @@ public:
             vertices.push_back(vns[i]); indices.push_back(vertices.size() - 1);
             i = i + 3;
         }
-        std::cout << "test4" << std::endl;
         setupMesh();
-        std::cout << "test5" << std::endl;
     }
+
+    void qemSim() {
+        for (auto& face : halfEdge.faces)
+            face->Kp = getKp(face);
+        for (auto& vert : halfEdge.verts) {
+            auto edge = vert->edge;
+            do
+            {
+                vert->Q += edge->face->Kp;
+                edge = edge->pair->next;
+            } while (edge != vert->edge);
+        }
+        for (auto& edge : halfEdge.edges) {
+            edge->Q = edge->vert->Q + edge->vert0->Q;
+            Eigen::Matrix4f tMatrix;
+            tMatrix << edge->Q(0, 0), edge->Q(0, 1), edge->Q(0, 2), edge->Q(0, 3),
+                edge->Q(0, 1), edge->Q(1, 1), edge->Q(1, 2), edge->Q(1, 3),
+                edge->Q(0, 2), edge->Q(1, 2), edge->Q(2, 2), edge->Q(2, 3),
+                0, 0, 0, 1;
+            if (tMatrix.fullPivLu().isInvertible()) {
+                Eigen::Vector4f tVector(0, 0, 0, 1);
+                edge->p = tMatrix.inverse() * tVector;
+                edge->cost = edge->p.transpose() * edge->Q * edge->p;
+            }
+            else {
+                Eigen::Vector4f tVector1(edge->vert->vertex.Position.x, edge->vert->vertex.Position.y, edge->vert->vertex.Position.z, 1);
+                Eigen::Vector4f tVector2(edge->vert0->vertex.Position.x, edge->vert0->vertex.Position.y, edge->vert0->vertex.Position.z, 1);
+                Eigen::Vector4f tVector3 = (tVector1 + tVector2) / 2;
+                float cost1 = tVector1.transpose() * edge->Q * tVector1;
+                float cost2 = tVector2.transpose() * edge->Q * tVector2;
+                float cost3 = tVector3.transpose() * edge->Q * tVector3;
+                if (cost1 <= cost2 && cost1 <= cost3) {
+                    edge->p = tVector1;
+                    edge->cost = cost1;
+                }
+                if (cost2 <= cost1 && cost2 <= cost3) {
+                    edge->p = tVector2;
+                    edge->cost = cost2;
+                }
+                else {
+                    edge->p = tVector3;
+                    edge->cost = cost3;
+                }
+            }
+        }
+    }
+
     // render the mesh
     void Draw(Shader& shader)
     {
@@ -224,7 +267,7 @@ private:
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_DYNAMIC_DRAW);
 
         // set the vertex attribute pointers
         // vertex Positions

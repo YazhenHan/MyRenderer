@@ -55,17 +55,22 @@ struct HE_edge
 	HE_edge* pair;
 	HE_face* face;
 	HE_edge* next;
+	Eigen::Matrix4f	Q;
+	Eigen::Vector4f p;
+	float cost;
 };
 
 struct HE_vert
 {
 	Vertex vertex;
 	HE_edge* edge;
+	Eigen::Matrix4f Q = Eigen::Matrix4f::Zero();
 };
 
 struct HE_face
 {
 	HE_edge* edge;
+	Eigen::Matrix4f Kp;
 };
 
 class HalfEdge
@@ -75,3 +80,18 @@ public:
 	std::vector<HE_vert*> verts;
 	std::vector<HE_face*> faces;
 };
+
+Eigen::Matrix4f getKp(HE_face* face) {
+	auto first = face->edge->vert->vertex.Position;
+	auto second = face->edge->next->vert->vertex.Position;
+	auto third = face->edge->vert0->vertex.Position;
+	auto fs = second - first;
+	auto st = third - second;
+	Eigen::Vector3f A(fs.x, fs.y, fs.z);
+	Eigen::Vector3f B(st.x, st.y, st.z);
+	auto temp = A.cross(B).normalized();
+	float a = temp[0], b = temp[1], c = temp[3];
+	float d = .0f - (a * second.x + b * second.y + c * second.z);
+	Eigen::Vector4f p(a, b, c, d);
+	return p * p.transpose();
+}

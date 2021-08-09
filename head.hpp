@@ -219,17 +219,18 @@ string inputModel() {
     return res;
 }
 
-inline void loopSubdivision(Model& ourModel, Shader& modelLoadingShader) {
+inline void loopSubdivision(Model& ourModel, Shader& modelLoadingShader, Shader& pointShader, Shader& lineShader) {
     ImGui::Begin("settings");
-    static bool wiremode = true;
+    static bool fill = true, line = true, point = true;
     static unsigned int frames = 0, fps = 0;
     static int faceNum = ourModel.getFaceNum();
     static float start_time = glfwGetTime();
-    wiremode ? glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     ++frames; float currentFrame = glfwGetTime(); deltaTime = currentFrame - lastFrame; lastFrame = currentFrame;
     if (currentFrame - start_time >= 1.0f) { fps = frames; frames = 0; start_time = currentFrame; }
     ImGui::Text("fps: %d    spf: %f", fps, deltaTime);
-    ImGui::Checkbox("wiremode", &wiremode);
+    ImGui::Checkbox("fill", &fill);
+    ImGui::Checkbox("line", &line);
+    ImGui::Checkbox("point", &point);
     ImGui::Text("Face Number: %d", ourModel.getFaceNum());
     ImGui::Text("Vertex Number: %d", ourModel.getVertexNum());
     ImGui::Text("Mesh Number: %d", ourModel.meshes.size());
@@ -244,17 +245,107 @@ inline void loopSubdivision(Model& ourModel, Shader& modelLoadingShader) {
     }
     ImGui::End();
 
-    modelLoadingShader.use();
     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
     glm::mat4 view = camera.GetViewMatrix();
-    modelLoadingShader.setMat4("projection", projection);
-    modelLoadingShader.setMat4("view", view);
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
     model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
-    modelLoadingShader.setMat4("model", model);
 
-    ourModel.Draw(modelLoadingShader);
+    if (point) {
+        pointShader.use();
+        pointShader.setMat4("projection", projection);
+        pointShader.setMat4("view", view);
+        pointShader.setMat4("model", model);
+        glPointSize(4.0);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+        ourModel.Draw(pointShader);
+    }
+
+    if (line) {
+        lineShader.use();
+        lineShader.setMat4("projection", projection);
+        lineShader.setMat4("view", view);
+        lineShader.setMat4("model", model);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        ourModel.Draw(lineShader);
+    }
+
+    if (fill) {
+        modelLoadingShader.use();
+        modelLoadingShader.setMat4("projection", projection);
+        modelLoadingShader.setMat4("view", view);
+        modelLoadingShader.setMat4("model", model);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        ourModel.Draw(modelLoadingShader);
+    }
+
+    ImGui::Begin("log");
+
+    ImGui::End();
+}
+
+inline void qemSimplification(Model& ourModel, Shader& modelLoadingShader, Shader& pointShader, Shader& lineShader) {
+    ImGui::Begin("settings");
+    static bool fill = true, line = true, point = true;
+    static unsigned int frames = 0, fps = 0;
+    static int faceNum = ourModel.getFaceNum();
+    static float start_time = glfwGetTime();
+    ++frames; float currentFrame = glfwGetTime(); deltaTime = currentFrame - lastFrame; lastFrame = currentFrame;
+    if (currentFrame - start_time >= 1.0f) { fps = frames; frames = 0; start_time = currentFrame; }
+    ImGui::Text("fps: %d    spf: %f", fps, deltaTime);
+    ImGui::Checkbox("fill", &fill);
+    ImGui::Checkbox("line", &line);
+    ImGui::Checkbox("point", &point);
+    ImGui::Text("Face Number: %d", ourModel.getFaceNum());
+    ImGui::Text("Vertex Number: %d", ourModel.getVertexNum());
+    ImGui::Text("Mesh Number: %d", ourModel.meshes.size());
+    ImGui::Text("Texture Number: %d", ourModel.textures_loaded.size());
+    if (ImGui::Button("Input Model")) {
+        string path = inputModel();
+        if (path.size() != 0)
+            ourModel = Model(path);
+    }
+    if (ImGui::Button("LoopSubdivision")) {
+        ourModel.loopSub();
+    }
+    if (ImGui::Button("QEMSimplification")) {
+        ourModel.qemSim();
+    }
+    ImGui::End();
+
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    glm::mat4 view = camera.GetViewMatrix();
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
+    model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
+
+    if (point) {
+        pointShader.use();
+        pointShader.setMat4("projection", projection);
+        pointShader.setMat4("view", view);
+        pointShader.setMat4("model", model);
+        glPointSize(4.0);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+        ourModel.Draw(pointShader);
+    }
+
+    if (line) {
+        lineShader.use();
+        lineShader.setMat4("projection", projection);
+        lineShader.setMat4("view", view);
+        lineShader.setMat4("model", model);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        ourModel.Draw(lineShader);
+    }
+
+    if (fill) {
+        modelLoadingShader.use();
+        modelLoadingShader.setMat4("projection", projection);
+        modelLoadingShader.setMat4("view", view);
+        modelLoadingShader.setMat4("model", model);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        ourModel.Draw(modelLoadingShader);
+    }
 
     ImGui::Begin("log");
 
