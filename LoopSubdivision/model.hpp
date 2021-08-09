@@ -41,6 +41,7 @@ public:
     {
 
         loadModel(path);
+        toHalfEdge();
     }
 
     // draws the model, and thus all its meshes
@@ -51,30 +52,31 @@ public:
     }
 
     void toHalfEdge() {
-        for (unsigned int i = 0; i < meshes.size(); i++)
-            meshes[i].toHalfEdge();
+        for (auto& mesh : meshes)
+            mesh.toHalfEdge();
     }
 
     void toGLMesh() {
-        for (unsigned int i = 0; i < meshes.size(); i++)
-            meshes[i].toGLMesh();
+        for (auto& mesh : meshes)
+            mesh.toGLMesh();
     }
 
     unsigned int getFaceNum() {
         int n = 0;
-        for (auto mesh : meshes) n += mesh.getFaceNum();
+        for (auto& mesh : meshes) n += mesh.getFaceNum();
         return n;
     }
 
     unsigned int getVertexNum() {
         int n = 0;
-        for (auto mesh : meshes) n += mesh.getVertexNum();
+        for (auto& mesh : meshes) n += mesh.getVertexNum();
         return n;
     }
 
     void loopSub() {
-        for (unsigned int i = 0; i < meshes.size(); i++)
-            meshes[i].loopSub();
+        for (auto& mesh : meshes)
+            mesh.loopSub();
+        toHalfEdge();
     }
 
 private:

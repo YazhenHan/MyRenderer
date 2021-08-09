@@ -46,5 +46,11 @@
     <None Include="model_loading.vs">
       <Filter>资源文件</Filter>
     </None>
+    <None Include="line.fs">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="point.fs">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -59,9 +59,6 @@ struct HE_edge
 
 struct HE_vert
 {
-	/*float x;
-	float y;
-	float z;*/
 	Vertex vertex;
 	HE_edge* edge;
 };

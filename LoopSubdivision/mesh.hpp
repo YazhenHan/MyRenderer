@@ -59,7 +59,7 @@ public:
             HE_face* face = new HE_face();
 
             bool flag1 = false, flag2 = false, flag3 = false;
-            for (auto vert : halfEdge.verts) {
+            for (auto& vert : halfEdge.verts) {
                 if (vertices[first].Position == vert->vertex.Position) { vert1 = vert; flag1 = true; }
                 if (vertices[second].Position == vert->vertex.Position) { vert2 = vert; flag2 = true; }
                 if (vertices[third].Position == vert->vertex.Position) { vert3 = vert; flag3 = true; }
@@ -86,8 +86,6 @@ public:
             halfEdge.edges.push_back(edge1); halfEdge.edges.push_back(edge2); halfEdge.edges.push_back(edge3);
             halfEdge.faces.push_back(face);
         }
-        std::cout << vertices.size() << " " << indices.size() << std::endl;
-        std::cout << halfEdge.verts.size() << " " << halfEdge.faces.size() << std::endl;
     }
 
     void toGLMesh() {
@@ -102,16 +100,6 @@ public:
                 edge = edge->next;
             } while (edge != face->edge);
         }
-        /*for (unsigned int i = 0; i < halfEdge.faces.size() / 2; ++i) {
-            auto face = halfEdge.faces[i];
-            auto edge = face->edge;
-            do
-            {
-                vertices.push_back(edge->vert->vertex);
-                indices.push_back(vertices.size() - 1);
-                edge = edge->next;
-            } while (edge != face->edge);
-        }*/
     }
 
     void loopSub() {
@@ -129,7 +117,7 @@ public:
             } while (edge != face->edge);
         }
         std::vector<Vertex> vos;
-        for (auto* vert : halfEdge.verts) {
+        for (auto& vert : halfEdge.verts) {
             Vertex vo = vert->vertex;
             auto edge = vert->edge;
             Vertex vn;
@@ -138,7 +126,7 @@ public:
             {
                 n++;
                 vn = vn + edge->vert->vertex;
-                if (edge->pair == nullptr) { break; }
+                if (edge->pair == nullptr) break;
                 edge = edge->pair->next;
             } while (edge != vert->edge);
             float u = n == 3 ? 3.0 / 16.0 : 3.0 / (8.0 * n);
@@ -231,7 +219,7 @@ private:
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_DYNAMIC_DRAW);
 
         // set the vertex attribute pointers
         // vertex Positions

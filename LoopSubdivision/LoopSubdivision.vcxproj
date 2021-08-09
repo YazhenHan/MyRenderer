@@ -30,8 +30,10 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="line.fs" />
     <None Include="model_loading.fs" />
     <None Include="model_loading.vs" />
+    <None Include="point.fs" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
