@@ -163,49 +163,28 @@ public:
     }
 
     void qemSim() {
-        for (auto& face : halfEdge.faces)
-            face->Kp = getKp(face);
-        for (auto& vert : halfEdge.verts) {
-            auto edge = vert->edge;
-            do
-            {
-                vert->Q += edge->face->Kp;
-                edge = edge->pair->next;
-            } while (edge != vert->edge);
+        for (auto& face : halfEdge.faces) getKp(face);
+        for (auto& vert : halfEdge.verts) getQ(vert);
+        for (auto& edge : halfEdge.edges) getQpcost(edge);
+        int n = halfEdge.verts.size();
+        while (n > 600)
+        {
+            sort(halfEdge.edges.begin(), halfEdge.edges.end(), cmp);
+            collapse(halfEdge.edges.front());
+            n -= 1;
         }
-        for (auto& edge : halfEdge.edges) {
-            edge->Q = edge->vert->Q + edge->vert0->Q;
-            Eigen::Matrix4f tMatrix;
-            tMatrix << edge->Q(0, 0), edge->Q(0, 1), edge->Q(0, 2), edge->Q(0, 3),
-                edge->Q(0, 1), edge->Q(1, 1), edge->Q(1, 2), edge->Q(1, 3),
-                edge->Q(0, 2), edge->Q(1, 2), edge->Q(2, 2), edge->Q(2, 3),
-                0, 0, 0, 1;
-            if (tMatrix.fullPivLu().isInvertible()) {
-                Eigen::Vector4f tVector(0, 0, 0, 1);
-                edge->p = tMatrix.inverse() * tVector;
-                edge->cost = edge->p.transpose() * edge->Q * edge->p;
-            }
-            else {
-                Eigen::Vector4f tVector1(edge->vert->vertex.Position.x, edge->vert->vertex.Position.y, edge->vert->vertex.Position.z, 1);
-                Eigen::Vector4f tVector2(edge->vert0->vertex.Position.x, edge->vert0->vertex.Position.y, edge->vert0->vertex.Position.z, 1);
-                Eigen::Vector4f tVector3 = (tVector1 + tVector2) / 2;
-                float cost1 = tVector1.transpose() * edge->Q * tVector1;
-                float cost2 = tVector2.transpose() * edge->Q * tVector2;
-                float cost3 = tVector3.transpose() * edge->Q * tVector3;
-                if (cost1 <= cost2 && cost1 <= cost3) {
-                    edge->p = tVector1;
-                    edge->cost = cost1;
-                }
-                if (cost2 <= cost1 && cost2 <= cost3) {
-                    edge->p = tVector2;
-                    edge->cost = cost2;
-                }
-                else {
-                    edge->p = tVector3;
-                    edge->cost = cost3;
-                }
-            }
+        vertices.clear();
+        indices.clear();
+        for (auto& face : halfEdge.faces) {
+            if (face->flag) continue;
+            auto edge = face->edge;
+            vertices.push_back(edge->vert->vertex); indices.push_back(vertices.size() - 1);
+            edge = edge->next;
+            vertices.push_back(edge->vert->vertex); indices.push_back(vertices.size() - 1);
+            edge = edge->next;
+            vertices.push_back(edge->vert->vertex); indices.push_back(vertices.size() - 1);
         }
+        setupMesh();
     }
 
     // render the mesh
