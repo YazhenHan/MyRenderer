@@ -145,14 +145,13 @@
     <ClInclude Include="camera.hpp" />
     <ClInclude Include="halfedge.hpp" />
     <ClInclude Include="head.hpp" />
-    <ClInclude Include="mesh.hpp" />
     <ClInclude Include="model.hpp" />
     <ClInclude Include="shader.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="line.fs" />
-    <None Include="model_loading.fs" />
-    <None Include="model_loading.vs" />
+    <None Include="face.fs" />
+    <None Include="universal.vs" />
     <None Include="point.fs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

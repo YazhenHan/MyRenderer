@@ -1,4 +1,5 @@
 #include "head.hpp"
+#include "model.hpp"
 
 int main()
 {
@@ -6,14 +7,12 @@ int main()
     
     imguiBeforeLoop(window);
 
-    stbi_set_flip_vertically_on_load(true);
-
     glEnable(GL_DEPTH_TEST);
 
-    Shader modelLoadingShader("model_loading.vs", "model_loading.fs");
-    Shader pointShader("model_loading.vs", "point.fs");
-    Shader lineShader("model_loading.vs", "line.fs");
-    Model ourModel("C:/Users/gxucg/Documents/GitHub/MyRenderer/assets/african_head.obj");
+    Shader modelLoadingShader("universal.vs", "face.fs");
+    Shader pointShader("universal.vs", "point.fs");
+    Shader lineShader("universal.vs", "line.fs");
+    Model ourModel;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -26,7 +25,7 @@ int main()
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        qemSimplification(ourModel, modelLoadingShader, pointShader, lineShader);
+        draw(ourModel, modelLoadingShader, pointShader, lineShader);
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

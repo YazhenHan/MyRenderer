@@ -19,6 +19,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DataFitting", "DataFitting\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LoopSubdivision", "LoopSubdivision\LoopSubdivision.vcxproj", "{2F4B65DE-3F79-49B9-8C78-295F9B1CCDB5}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QEMSimplification", "QEMSimplification\QEMSimplification.vcxproj", "{8BFA5E11-A006-4B78-B7A5-F4ABD18A5B03}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -89,6 +91,14 @@ Global
 		{2F4B65DE-3F79-49B9-8C78-295F9B1CCDB5}.Release|x64.Build.0 = Release|x64
 		{2F4B65DE-3F79-49B9-8C78-295F9B1CCDB5}.Release|x86.ActiveCfg = Release|Win32
 		{2F4B65DE-3F79-49B9-8C78-295F9B1CCDB5}.Release|x86.Build.0 = Release|Win32
+		{8BFA5E11-A006-4B78-B7A5-F4ABD18A5B03}.Debug|x64.ActiveCfg = Debug|x64
+		{8BFA5E11-A006-4B78-B7A5-F4ABD18A5B03}.Debug|x64.Build.0 = Debug|x64
+		{8BFA5E11-A006-4B78-B7A5-F4ABD18A5B03}.Debug|x86.ActiveCfg = Debug|Win32
+		{8BFA5E11-A006-4B78-B7A5-F4ABD18A5B03}.Debug|x86.Build.0 = Debug|Win32
+		{8BFA5E11-A006-4B78-B7A5-F4ABD18A5B03}.Release|x64.ActiveCfg = Release|x64
+		{8BFA5E11-A006-4B78-B7A5-F4ABD18A5B03}.Release|x64.Build.0 = Release|x64
+		{8BFA5E11-A006-4B78-B7A5-F4ABD18A5B03}.Release|x86.ActiveCfg = Release|Win32
+		{8BFA5E11-A006-4B78-B7A5-F4ABD18A5B03}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
