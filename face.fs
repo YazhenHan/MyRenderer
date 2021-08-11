@@ -3,11 +3,12 @@ out vec4 FragColor;
 
 in vec2 TexCoords;
 in vec3 Normal;
+in vec3 Pos;
 
 uniform sampler2D texture_diffuse1;
 
 void main()
 {    
     // FragColor = texture(texture_diffuse1, TexCoords);
-    FragColor = vec4(Normal, 1.0);
+    FragColor = vec4(Pos, 1.0);
 }

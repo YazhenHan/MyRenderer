@@ -206,14 +206,18 @@ inline void draw(Model& ourModel, Shader& modelLoadingShader, Shader& pointShade
     ImGui::Begin("settings");
         static bool fill = true, line = true, point = true;
         static unsigned int frames = 0, fps = 0;
+        static float f[4] = { 1.0, 1.0, 1.0, 1.0 };
+        glClearColor(f[0], f[1], f[2], 1.0);
         static float start_time = glfwGetTime();
         ++frames; float currentFrame = glfwGetTime(); deltaTime = currentFrame - lastFrame; lastFrame = currentFrame;
         if (currentFrame - start_time >= 1.0f) { fps = frames; frames = 0; start_time = currentFrame; }
         ImGui::Text("fps: %d    spf: %f", fps, deltaTime);
+        ImGui::ColorEdit3("background", f);
         ImGui::Checkbox("fill", &fill);
         ImGui::Checkbox("line", &line);
         ImGui::Checkbox("point", &point);
         ImGui::Text("Vertex Number: %d", ourModel.vSize());
+        ImGui::Text("Edge Number: %d", ourModel.eSize());
         ImGui::Text("Face Number: %d", ourModel.fSize());
         if (ImGui::Button("Input Model")) {
             std::string path = inputModel();
