@@ -15,38 +15,41 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="camera.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="shader.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="model.hpp">
+    <ClInclude Include="glfwwindow.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="halfedge.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="head.hpp">
+    <ClInclude Include="mesh.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="model.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="shader.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="universal.vs">
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="face.fs">
       <Filter>资源文件</Filter>
     </None>
-    <None Include="face.fs">
+    <None Include="line.fs">
       <Filter>资源文件</Filter>
     </None>
     <None Include="point.fs">
       <Filter>资源文件</Filter>
     </None>
-    <None Include="line.fs">
+    <None Include="universal.vs">
       <Filter>资源文件</Filter>
     </None>
   </ItemGroup>

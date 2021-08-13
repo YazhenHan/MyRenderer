@@ -18,6 +18,23 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="camera.hpp" />
+    <ClInclude Include="glfwwindow.hpp" />
+    <ClInclude Include="halfedge.hpp" />
+    <ClInclude Include="mesh.hpp" />
+    <ClInclude Include="model.hpp" />
+    <ClInclude Include="shader.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="face.fs" />
+    <None Include="line.fs" />
+    <None Include="point.fs" />
+    <None Include="universal.vs" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -139,22 +156,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="camera.hpp" />
-    <ClInclude Include="halfedge.hpp" />
-    <ClInclude Include="head.hpp" />
-    <ClInclude Include="model.hpp" />
-    <ClInclude Include="shader.hpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="line.fs" />
-    <None Include="face.fs" />
-    <None Include="universal.vs" />
-    <None Include="point.fs" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

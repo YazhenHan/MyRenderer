@@ -10,11 +10,12 @@ out vec3 Pos;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform mat4 tempM;
 
 void main()
 {
     TexCoords = aTexCoords;
     Normal = aNormal;
-    Pos = aPos;
+    Pos = vec3(tempM * vec4(aPos, 1.0)) * 2;
     gl_Position = projection * view * model * vec4(aPos, 1.0);
 }
