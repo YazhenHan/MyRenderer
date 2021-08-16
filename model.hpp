@@ -60,6 +60,7 @@ public:
     void toGLData() { for (auto& mesh : meshes) mesh.toGLData(); }
     void loopSub() { for (auto& mesh : meshes) mesh.loopSub(); toHalfEdge(); toGLData(); getAABB(); }
     void qemSim(int faceNum) { for (auto& mesh : meshes) mesh.qemSim(faceNum); toHalfEdge(); toGLData(); getAABB(); }
+    void miniSur() { for (auto& mesh : meshes) mesh.miniSur(); }
 
 private:
     // loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.

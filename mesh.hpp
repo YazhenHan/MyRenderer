@@ -215,6 +215,31 @@ public:
             vertices.push_back(edge->vert->vertex); indices.push_back(vertices.size() - 1);
         }
     }
+    void miniSur() {
+        for (auto& vert : halfEdge.verts) {
+            auto edge = vert->edge;
+            auto vert0 = vert->vertex.Position;
+            do
+            {
+                auto vert1 = edge->vert->vertex.Position;
+                auto vert2 = edge->next->vert->vertex.Position; auto vert3 = edge->pair->next->vert->vertex.Position;
+
+                auto vert20 = vert0 - vert2, vert21 = vert1 - vert2;
+                auto costheta2 = (vert20.x * vert21.x + vert20.y * vert21.y + vert20.z * vert21.z) / (sqrt(vert20.x * vert20.x +
+                    vert20.y * vert20.y + vert20.z * vert20.z) * sqrt(vert21.x * vert21.x + vert21.y * vert21.y + vert21.z * vert21.z));
+                auto cottheta2 = costheta2 / (1 - costheta2 * costheta2);
+
+                auto vert30 = vert0 - vert3, vert31 = vert1 - vert3;
+                auto costheta3 = (vert30.x * vert31.x + vert30.y * vert31.y + vert30.z * vert31.z) / (sqrt(vert30.x * vert30.x +
+                    vert30.y * vert30.y + vert30.z * vert30.z) * sqrt(vert31.x * vert31.x + vert31.y * vert31.y + vert31.z * vert31.z));
+                auto cottheta3 = costheta3 / (1 - costheta3 * costheta3);
+
+
+
+                edge = edge->pair->next;
+            } while (edge != vert->edge);
+        }
+    }
 
 private:
     // render data 
