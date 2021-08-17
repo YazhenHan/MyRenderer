@@ -78,6 +78,8 @@ struct HE_Vert {
 
 	Eigen::Matrix4f Q = Eigen::Matrix4f::Zero();
 	inline void getQ();
+
+	glm::vec3 hn = { 0.0,0.0,0.0 };
 };
 
 struct HE_Edge {

@@ -159,6 +159,7 @@ public:
                 static int faceNum = 300;
                 ImGui::SliderInt("facesNum", &faceNum, 100, 1000);
                 if (ImGui::Button("QEMSimplification")) { ourModel.qemSim(faceNum); }
+                if (ImGui::Button("MinimalSurface")) { ourModel.miniSur(); }
             ImGui::End();
 
             glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);

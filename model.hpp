@@ -45,7 +45,7 @@ public:
     int vSize() const { int vsize = 0; for (auto& mesh : meshes) vsize += mesh.vSize(); return vsize; }
     int eSize() const { int esize = 0; for (auto& mesh : meshes) esize += mesh.eSize(); return esize; }
     int fSize() const { int fsize = 0; for (auto& mesh : meshes) fsize += mesh.fSize(); return fsize; }
-    float xmin, xmax, ymin, ymax, zmin, zmax;
+    float xmin = -1.0f, xmax = 1.0f, ymin = -1.0f, ymax = 1.0f, zmin = -1.0f, zmax = 1.0f;
     void getAABB() {
         xmin = meshes.front().xmin; xmax = meshes.front().xmax;
         ymin = meshes.front().ymin; ymax = meshes.front().ymax;
@@ -60,7 +60,11 @@ public:
     void toGLData() { for (auto& mesh : meshes) mesh.toGLData(); }
     void loopSub() { for (auto& mesh : meshes) mesh.loopSub(); toHalfEdge(); toGLData(); getAABB(); }
     void qemSim(int faceNum) { for (auto& mesh : meshes) mesh.qemSim(faceNum); toHalfEdge(); toGLData(); getAABB(); }
-    void miniSur() { for (auto& mesh : meshes) mesh.miniSur(); }
+    void miniSur() { 
+        for (int i = 0; i < 20; ++i) {
+            for (auto& mesh : meshes) { mesh.miniSur(); toGLData(); }
+        }
+    }
 
 private:
     // loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.

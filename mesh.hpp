@@ -218,6 +218,17 @@ public:
     void miniSur() {
         for (auto& vert : halfEdge.verts) {
             auto edge = vert->edge;
+
+            bool flag = false;
+            do
+            {
+                if (edge->pair == nullptr) { flag = true; break; }
+                edge = edge->pair->next;
+            } while (edge != vert->edge);
+            if (flag) continue;
+
+            float voronoi = 0.0f;
+            edge = vert->edge;
             auto vert0 = vert->vertex.Position;
             do
             {
@@ -227,18 +238,53 @@ public:
                 auto vert20 = vert0 - vert2, vert21 = vert1 - vert2;
                 auto costheta2 = (vert20.x * vert21.x + vert20.y * vert21.y + vert20.z * vert21.z) / (sqrt(vert20.x * vert20.x +
                     vert20.y * vert20.y + vert20.z * vert20.z) * sqrt(vert21.x * vert21.x + vert21.y * vert21.y + vert21.z * vert21.z));
-                auto cottheta2 = costheta2 / (1 - costheta2 * costheta2);
+                auto cottheta2 = costheta2 / sqrt(1 - costheta2 * costheta2);
+                cottheta2 = max(cottheta2, 0.0f);
 
                 auto vert30 = vert0 - vert3, vert31 = vert1 - vert3;
                 auto costheta3 = (vert30.x * vert31.x + vert30.y * vert31.y + vert30.z * vert31.z) / (sqrt(vert30.x * vert30.x +
                     vert30.y * vert30.y + vert30.z * vert30.z) * sqrt(vert31.x * vert31.x + vert31.y * vert31.y + vert31.z * vert31.z));
-                auto cottheta3 = costheta3 / (1 - costheta3 * costheta3);
+                auto cottheta3 = costheta3 / sqrt(1 - costheta3 * costheta3);
+                cottheta3 = max(cottheta3, 0.0f);
 
+                auto vert10 = vert0 - vert1;
+                auto d01 = vert10.x * vert10.x + vert10.y * vert10.y + vert10.z * vert10.z;
 
+                voronoi = voronoi + (cottheta2 + cottheta3) * d01 / 8.0f;
 
                 edge = edge->pair->next;
             } while (edge != vert->edge);
+
+            glm::vec3 hn(0.0, 0.0, 0.0);
+            do
+            {
+                auto vert1 = edge->vert->vertex.Position;
+                auto vert2 = edge->next->vert->vertex.Position; auto vert3 = edge->pair->next->vert->vertex.Position;
+
+                auto vert20 = vert0 - vert2, vert21 = vert1 - vert2;
+                auto costheta2 = (vert20.x * vert21.x + vert20.y * vert21.y + vert20.z * vert21.z) / (sqrt(vert20.x * vert20.x +
+                    vert20.y * vert20.y + vert20.z * vert20.z) * sqrt(vert21.x * vert21.x + vert21.y * vert21.y + vert21.z * vert21.z));
+                auto cottheta2 = costheta2 / sqrt(1 - costheta2 * costheta2);
+                cottheta2 = max(cottheta2, 0.0f);
+
+                auto vert30 = vert0 - vert3, vert31 = vert1 - vert3;
+                auto costheta3 = (vert30.x * vert31.x + vert30.y * vert31.y + vert30.z * vert31.z) / (sqrt(vert30.x * vert30.x +
+                    vert30.y * vert30.y + vert30.z * vert30.z) * sqrt(vert31.x * vert31.x + vert31.y * vert31.y + vert31.z * vert31.z));
+                auto cottheta3 = costheta3 / sqrt(1 - costheta3 * costheta3);
+                cottheta3 = max(cottheta3, 0.0f);
+
+                auto vert10 = vert0 - vert1;
+
+                hn = hn + (cottheta2 + cottheta3) * vert10 / (4 * voronoi);
+
+                edge = edge->pair->next;
+            } while (edge != vert->edge);
+
+            vert->hn = hn;
         }
+
+        for (auto& vert : halfEdge.verts)
+            vert->vertex.Position = vert->vertex.Position - vert->hn * 0.001;
     }
 
 private:
