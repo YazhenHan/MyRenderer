@@ -159,7 +159,10 @@ public:
                 static int faceNum = 300;
                 ImGui::SliderInt("facesNum", &faceNum, 100, 1000);
                 if (ImGui::Button("QEMSimplification")) { ourModel.qemSim(faceNum); }
-                if (ImGui::Button("MinimalSurface")) { ourModel.miniSur(); }
+                static float stepsize = 0.001f; static int iternum = 100;
+                ImGui::SliderFloat("stepsize", &stepsize, 0.0f, 0.1f);
+                ImGui::SliderInt("iternum", &iternum, 10, 2000);
+                if (ImGui::Button("MinimalSurface")) { ourModel.miniSur(iternum, stepsize); }
             ImGui::End();
 
             glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);

@@ -215,7 +215,7 @@ public:
             vertices.push_back(edge->vert->vertex); indices.push_back(vertices.size() - 1);
         }
     }
-    void miniSur() {
+    void miniSur(float stepsize) {
         for (auto& vert : halfEdge.verts) {
             auto edge = vert->edge;
 
@@ -284,7 +284,7 @@ public:
         }
 
         for (auto& vert : halfEdge.verts)
-            vert->vertex.Position = vert->vertex.Position - vert->hn * 0.001;
+            vert->vertex.Position = vert->vertex.Position - vert->hn * stepsize;
     }
 
 private:
