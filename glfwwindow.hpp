@@ -163,6 +163,7 @@ public:
                 ImGui::SliderFloat("stepsize", &stepsize, 0.0f, 0.1f);
                 ImGui::SliderInt("iternum", &iternum, 10, 2000);
                 if (ImGui::Button("MinimalSurface")) { ourModel.miniSur(iternum, stepsize); }
+                if (ImGui::Button("MinimalSurface2")) { ourModel.miniSur2(); }
             ImGui::End();
 
             glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);

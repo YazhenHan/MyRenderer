@@ -21,6 +21,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LoopSubdivision", "LoopSubd
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QEMSimplification", "QEMSimplification\QEMSimplification.vcxproj", "{8BFA5E11-A006-4B78-B7A5-F4ABD18A5B03}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenMeshlibigl", "OpenMeshlibigl\OpenMeshlibigl.vcxproj", "{8D736391-9BBF-4BA5-B951-6F535F1043DD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -99,6 +101,14 @@ Global
 		{8BFA5E11-A006-4B78-B7A5-F4ABD18A5B03}.Release|x64.Build.0 = Release|x64
 		{8BFA5E11-A006-4B78-B7A5-F4ABD18A5B03}.Release|x86.ActiveCfg = Release|Win32
 		{8BFA5E11-A006-4B78-B7A5-F4ABD18A5B03}.Release|x86.Build.0 = Release|Win32
+		{8D736391-9BBF-4BA5-B951-6F535F1043DD}.Debug|x64.ActiveCfg = Debug|x64
+		{8D736391-9BBF-4BA5-B951-6F535F1043DD}.Debug|x64.Build.0 = Debug|x64
+		{8D736391-9BBF-4BA5-B951-6F535F1043DD}.Debug|x86.ActiveCfg = Debug|Win32
+		{8D736391-9BBF-4BA5-B951-6F535F1043DD}.Debug|x86.Build.0 = Debug|Win32
+		{8D736391-9BBF-4BA5-B951-6F535F1043DD}.Release|x64.ActiveCfg = Release|x64
+		{8D736391-9BBF-4BA5-B951-6F535F1043DD}.Release|x64.Build.0 = Release|x64
+		{8D736391-9BBF-4BA5-B951-6F535F1043DD}.Release|x86.ActiveCfg = Release|Win32
+		{8D736391-9BBF-4BA5-B951-6F535F1043DD}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

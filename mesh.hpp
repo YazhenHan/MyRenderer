@@ -286,6 +286,19 @@ public:
         for (auto& vert : halfEdge.verts)
             vert->vertex.Position = vert->vertex.Position - vert->hn * stepsize;
     }
+    void miniSur2() {
+        int count = 0;
+        for (auto& vert : halfEdge.verts) {
+            auto edge = vert->edge;
+            bool flag = false;
+            do
+            {
+                if (edge->pair == nullptr) { count++; break; }
+                edge = edge->pair->next;
+            } while (edge != vert->edge);
+        }
+        cout << count << endl;
+    }
 
 private:
     // render data 
