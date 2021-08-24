@@ -51,6 +51,14 @@ bool key_down(igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier
             ti++;
         }
         break;
+    case '4':
+        if (ti > 1) {
+            ti--;
+            viewer.data().clear();
+            viewer.data().set_mesh(V[ti], F[ti]);
+            viewer.core().align_camera_center(V[ti], F[ti]);
+        }
+        break;
     case 'r':
     case 'R':
         tm = mesh;
@@ -69,11 +77,7 @@ int main(int argc, char** argv)
     mesh.request_vertex_normals();
     mesh.request_face_normals();
     // read mesh from stdin
-    if (!OpenMesh::IO::read_mesh(mesh, "../assets/diablo3_pose.obj"))
-    {
-        std::cerr << "Error: Cannot read mesh from assets/african_head.obj" << std::endl;
-        return 1;
-    }
+    OpenMesh::IO::read_mesh(mesh, "../assets/Nefertiti_face.obj");
     tm = mesh;
     mesh.update_face_normals();
     mesh.update_vertex_normals();

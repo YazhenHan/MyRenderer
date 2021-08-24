@@ -18,7 +18,6 @@ struct edge_Collapse_structure {
 		return cost > a.cost;
 	}
 };
-
 void qemSimplification(MyMesh& mesh, float ratio) {
 	assert(ratio >= 0 && ratio <= 1);
 	int it_num = (1.0f - ratio) * mesh.n_vertices();
@@ -148,6 +147,20 @@ void qemSimplification(MyMesh& mesh, float ratio) {
 		i++;
 	}
 	mesh.garbage_collection();
+}
+
+double calc_angle(MyMesh::HalfedgeHandle he, MyMesh& mesh) {
+	MyMesh::Point p1, p2, p3;
+	p1 = mesh.point(mesh.from_vertex_handle(he));
+	p2 = mesh.point(mesh.to_vertex_handle(he));
+	p3 = mesh.point(mesh.to_vertex_handle(mesh.next_halfedge_handle(he)));
+	MyMesh::Point v1 = p1 - p3;
+	MyMesh::Point v2 = p2 - p3;
+	double a = OpenMesh::norm(v1);
+	double b = OpenMesh::norm(p1 - p2);
+	double c = OpenMesh::norm(v2);
+
+	return acos((c * c + a * a - b * b) / (2 * c * a));
 }
 
 std::vector<MyMesh::Point> calc_Hn(MyMesh& mesh) {
