@@ -1,16 +1,12 @@
 #pragma once
-#ifndef TOPICS_HPP
-#define TOPICS_HPP
-
 #include "base.hpp"
 
+void simple_mesh_smoother(MyMesh& mesh);
 
-void loop();
+void local_laplace_smoother(MyMesh& mesh, double lambda = 0.001, int in_num = 100);
 
-void qemSimplification(MyMesh& mesh, float ratio);
+void global_laplace_smoother(MyMesh& mesh);
 
-MyMesh local_minimal_surface(MyMesh mesh, float lambda = 0.001, int it_num = 100);
+void loop_subdivision(MyMesh& mesh);
 
-MyMesh global_minimal_surface(MyMesh mesh);
-
-#endif // !TOPICS_HPP
+void qem_simplification(MyMesh& mesh);

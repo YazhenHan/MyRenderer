@@ -1,15 +1,170 @@
+#include "base.hpp"
 #include "topics.hpp"
 #include <OpenMesh/Core/Utils/PropertyManager.hh>
 #include <Eigen/Sparse>
 #include <queue>
 
-struct edge_Collapse_structure {
+void simple_mesh_smoother(MyMesh& mesh) {
+	auto cog = OpenMesh::VProp<MyMesh::Point>(mesh);
+	for (const auto& vh : mesh.vertices()) {
+		cog[vh] = { 0,0,0 };
+		int valence = 0;
+		for (const auto& vvh : mesh.vv_range(vh)) {
+			cog[vh] += mesh.point(vvh);
+			++valence;
+		}
+		cog[vh] /= valence;
+	}
+	for (const auto& vh : mesh.vertices()) {
+		mesh.point(vh) = cog[vh];
+	}
+}
+
+void half_angle(MyMesh& mesh, OpenMesh::HProp<double>& h_angle) {
+	for (auto& h : mesh.halfedges()) {
+		if (h.is_boundary()) continue;
+		MyMesh::Point p = mesh.point(h.next().to()), a = mesh.point(h.from()), b = mesh.point(h.to());
+		OpenMesh::Vec3d pa = a - p, pb = b - p;
+		h_angle[h] = std::acos(pa.dot(pb) / (pa.norm() * pb.norm()));
+	}
+}
+void laplace_coordinate(MyMesh& mesh, OpenMesh::VProp<OpenMesh::Vec3d>& hn) {
+	auto h_angle = OpenMesh::HProp<double>(mesh);
+	half_angle(mesh, h_angle);
+	for (auto& v : mesh.vertices()) {
+		if (v.is_boundary()) continue;
+		OpenMesh::Vec3d temp(0.0, 0.0, 0.0);
+		double A = 0.0;
+		for (auto ve : v.outgoing_halfedges()) {
+			double w = 1.0 / std::tan(h_angle[ve]) + 1.0 / std::tan(h_angle[ve.opp()]); w = std::max(w, 0.0); w = std::min(w, 10.0);
+			OpenMesh::Vec3d vo = mesh.point(ve.to()) - mesh.point(v);
+			temp += w * vo;
+			A += w * vo.sqrnorm();
+		}
+		A /= 8.0; temp /= (4 * A);
+		hn[v] = temp;
+	}
+}
+void local_laplace_smoother(MyMesh& mesh, double lambda, int in_num) {
+	auto hn = OpenMesh::VProp<OpenMesh::Vec3d>(mesh);
+	for (int i = 0; i < in_num; i++) {
+		laplace_coordinate(mesh, hn);
+		for (auto& v : mesh.vertices())
+			if (!v.is_boundary())
+				mesh.point(v) += hn[v] * lambda;
+	}
+}
+
+void global_laplace_smoother(MyMesh& mesh) {
+	Eigen::SparseMatrix<double> A(mesh.n_vertices(), mesh.n_vertices());
+	Eigen::VectorXd b_x(mesh.n_vertices());
+	Eigen::VectorXd b_y(mesh.n_vertices());
+	Eigen::VectorXd b_z(mesh.n_vertices());
+	std::vector<Eigen::Triplet<double>> tv;
+
+	auto h_angle = OpenMesh::HProp<double>(mesh);
+	half_angle(mesh, h_angle);
+	// fill the coefficient matrix
+	for (auto& v : mesh.vertices()) {
+		// if if boundary, a_i = 1;
+		if (v.is_boundary()) {
+			Eigen::Triplet<double> temp(v.idx(), v.idx(), 1.0f);
+			tv.push_back(temp);
+			b_x[v.idx()] = mesh.point(v)[0];
+			b_y[v.idx()] = mesh.point(v)[1];
+			b_z[v.idx()] = mesh.point(v)[2];
+		}
+		else {
+			double count = 0.0;
+			// negative number of the sum of the 1-ring coefficient
+			for (auto ve : v.outgoing_halfedges()) {
+				double w = 1.0 / std::tan(h_angle[ve]) + 1.0 / std::tan(h_angle[ve.opp()]);
+				Eigen::Triplet<double> temp(v.idx(), ve.to().idx(), w);
+				tv.push_back(temp);
+				count += w;
+			}
+			Eigen::Triplet<double> temp(v.idx(), v.idx(), -count);
+			tv.push_back(temp);
+			b_x[v.idx()] = 0.0;
+			b_y[v.idx()] = 0.0;
+			b_z[v.idx()] = 0.0;
+		}
+	}
+
+	// solve u, v
+	A.setFromTriplets(tv.begin(), tv.end());
+	Eigen::SparseLU<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>> solver;
+	solver.analyzePattern(A);
+	solver.factorize(A);
+	Eigen::VectorXd x = solver.solve(b_x);
+	Eigen::VectorXd y = solver.solve(b_y);
+	Eigen::VectorXd z = solver.solve(b_z);
+	for (auto& v : mesh.vertices())
+		mesh.point(v) = MyMesh::Point(x(v.idx()), y(v.idx()), z(v.idx()));
+}
+
+void loop_subdivision(MyMesh& mesh) {
+	MyMesh ans;
+
+	{
+		auto old_vertex_vhandle = OpenMesh::VProp<MyMesh::VertexHandle>(mesh);
+		auto edge_flag = OpenMesh::EProp<bool>(mesh);
+		auto edge_vhandle = OpenMesh::EProp<MyMesh::VertexHandle>(mesh);
+		for (auto& v_it : mesh.vertices()) {
+			MyMesh::Point temp_point = { 0, 0, 0 };
+			if (v_it.is_boundary()) {
+				for (auto vv_it : v_it.vertices())
+					if (vv_it.is_boundary())
+						temp_point += mesh.point(vv_it);
+				temp_point = (1.0 / 8.0) * temp_point + (3.0 / 4.0) * mesh.point(v_it);
+			}
+			else {
+				float u = v_it.valence() == 3 ? 3.0 / 16.0 : 3.0 / (8.0 * v_it.valence());
+				for (auto vv_it : v_it.vertices())
+					temp_point += mesh.point(vv_it);
+				temp_point = (1 - v_it.valence() * u) * mesh.point(v_it) + u * temp_point;
+			}
+			old_vertex_vhandle[v_it] = ans.add_vertex(temp_point);
+		}
+		for (auto& e_it : mesh.edges()) edge_flag[e_it] = false;
+		for (auto& f_it : mesh.faces()) {
+			std::vector<MyMesh::VertexHandle> face;
+			auto temp = f_it.halfedge();
+			do {
+				if (edge_flag[temp.edge()])
+					face.push_back(edge_vhandle[temp.edge()]);
+				else {
+					if (temp.is_boundary())
+						face.push_back(ans.add_vertex(0.5 * (mesh.point(temp.from()) + mesh.point(temp.to()))));
+					else
+						face.push_back(ans.add_vertex((3.0 / 8.0) * (mesh.point(temp.from()) + mesh.point(temp.to())) +
+							(1.0 / 8.0) * (mesh.point(temp.next().to()) + mesh.point(temp.opp().next().to()))));
+					edge_flag[temp.edge()] = true;
+					edge_vhandle[temp.edge()] = face.back();
+				}
+				temp = temp.next();
+			} while (temp != f_it.halfedge());
+			int i = 0;
+			do {
+				ans.add_face({ face[i], old_vertex_vhandle[temp.to()], face[(i + 1) % face.size()] });
+				i = (i + 1) % face.size();
+				temp = temp.next();
+			} while (temp != f_it.halfedge());
+			ans.add_face(face);
+		}
+	}
+
+	mesh = ans;
+}
+
+struct edge_Collapse_structure
+{
 	MyMesh::HalfedgeHandle hf;
 	MyMesh::Point np;
-	MyMesh::VertexHandle vto;
 	MyMesh::VertexHandle vfrom;
+	MyMesh::VertexHandle vto;
 
-	// 下面两个用来判断该点对是否已被更新过的点对取代
+	// 判断该点对是否已被更新过的点对取代
 	int vto_flag = 0;
 	int vfrom_flag = 0;
 	Eigen::Matrix4f Q_new;
@@ -18,17 +173,17 @@ struct edge_Collapse_structure {
 		return cost > a.cost;
 	}
 };
-void qemSimplification(MyMesh& mesh, float ratio) {
-	assert(ratio >= 0 && ratio <= 1);
-	int it_num = (1.0f - ratio) * mesh.n_vertices();
-
-	// 1. Compute the Q matrix for all the initial vertices;
+void qem_simplification(MyMesh& mesh) {
+	int it_num = mesh.n_vertices() / 2;
+	//1. Compute the Q matrices for all the initial vertices
 	auto Q = OpenMesh::makeTemporaryProperty<OpenMesh::VertexHandle, Eigen::Matrix4f>(mesh);
 	auto v = OpenMesh::makeTemporaryProperty<OpenMesh::VertexHandle, Eigen::Vector4f>(mesh);
-	auto flag = OpenMesh::makeTemporaryProperty<OpenMesh::VertexHandle, int>(mesh); // 与vto_flag vfrom_flag配合判断点对是否还有效
+	auto flag = OpenMesh::makeTemporaryProperty<OpenMesh::VertexHandle, int>(mesh); //与vto_flag vfrom_flag配合判断点对是否还有效
 	auto p = OpenMesh::makeTemporaryProperty<OpenMesh::FaceHandle, Eigen::Vector4f>(mesh);
-
-	for (auto fit = mesh.faces_begin(); fit != mesh.faces_end(); fit++) {
+	mesh.request_face_normals();
+	mesh.update_face_normals();
+	for (MyMesh::FaceIter fit = mesh.faces_begin(); fit != mesh.faces_end(); ++fit)
+	{
 		float a, b, c, d;
 		a = mesh.normal(*fit)[0];
 		b = mesh.normal(*fit)[1];
@@ -40,11 +195,14 @@ void qemSimplification(MyMesh& mesh, float ratio) {
 		p[*fit][2] = c;
 		p[*fit][3] = d;
 	}
-	for (auto vit = mesh.vertices_begin(); vit != mesh.vertices_end(); vit++) {
+	for (MyMesh::VertexIter vit = mesh.vertices_begin(); vit != mesh.vertices_end(); ++vit)
+	{
 		Eigen::Matrix4f mat;
 		mat.setZero();
-		for (auto vf_it = mesh.vf_iter(*vit); vf_it.is_valid(); vf_it++)
+		for (MyMesh::VertexFaceIter vf_it = mesh.vf_iter(*vit); vf_it.is_valid(); ++vf_it)
+		{
 			mat += p[*vf_it] * p[*vf_it].transpose();
+		}
 		Q[*vit] = mat;
 		v[*vit][0] = mesh.point(*vit)[0];
 		v[*vit][1] = mesh.point(*vit)[1];
@@ -54,8 +212,9 @@ void qemSimplification(MyMesh& mesh, float ratio) {
 	}
 	// 2. Select all valid pairs (only vertices in an edge are considered)
 	// 3. Compute the optimal contraction target
-	std::priority_queue<edge_Collapse_structure, std::vector<edge_Collapse_structure>, std::less<edge_Collapse_structure>> q;
-	for (auto eit = mesh.edges_begin(); eit != mesh.edges_end(); eit++) {
+	std::priority_queue <edge_Collapse_structure, std::vector<edge_Collapse_structure>, std::less<edge_Collapse_structure>> q;
+	for (MyMesh::EdgeIter eit = mesh.edges_begin(); eit != mesh.edges_end(); ++eit)
+	{
 		Eigen::Matrix4f newQ = Q[eit->v0()] + Q[eit->v1()];
 		Eigen::Matrix4f tQ = newQ;
 		Eigen::Vector4f b(0.0f, 0.0f, 0.0f, 1.0f);
@@ -67,10 +226,15 @@ void qemSimplification(MyMesh& mesh, float ratio) {
 		Eigen::Vector4f vnew;
 		// if is invertible, solve the linear equation
 		if (lu.isInvertible())
+		{
 			vnew = tQ.inverse() * b;
+		}
 		// else take the midpoint
 		else
+		{
 			vnew = (v[eit->v0()] + v[eit->v1()]) / 2.0f;
+		}
+		//std::cout << vnew << std::endl;
 		edge_Collapse_structure ts;
 		ts.hf = eit->halfedge(0);
 		ts.cost = vnew.transpose() * newQ * vnew;
@@ -84,7 +248,6 @@ void qemSimplification(MyMesh& mesh, float ratio) {
 	mesh.request_vertex_status();
 	mesh.request_edge_status();
 	mesh.request_face_status();
-
 	int i = 0;
 	while (i < it_num)
 	{
@@ -95,28 +258,35 @@ void qemSimplification(MyMesh& mesh, float ratio) {
 		if (s.vto_flag != flag[s.vto] || s.vfrom_flag != flag[s.vfrom])
 			continue;
 		MyMesh::VertexHandle tvh;
-		if (mesh.is_collapse_ok(s.hf)) {
+		if (mesh.is_collapse_ok(s.hf))
+		{
 			mesh.collapse(s.hf);
 			tvh = s.vto;
-			flag[s.vto]++;
-			flag[s.vfrom]++;
+			flag[s.vto] ++;
+			flag[s.vfrom] ++;
 		}
-		else if (mesh.is_collapse_ok(mesh.opposite_halfedge_handle(s.hf))) {
+
+		else if (mesh.is_collapse_ok(mesh.opposite_halfedge_handle(s.hf)))
+		{
 			mesh.collapse(mesh.opposite_halfedge_handle(s.hf));
 			tvh = s.vfrom;
-			flag[s.vto]++;
-			flag[s.vfrom]++;
+			flag[s.vto] ++;
+			flag[s.vfrom] ++;
 		}
 		else
+		{
 			continue;
+		}
+
 		mesh.set_point(tvh, s.np);
 		Q[tvh] = s.Q_new;
 		v[tvh][0] = s.np[0];
 		v[tvh][1] = s.np[1];
 		v[tvh][2] = s.np[2];
 		v[tvh][3] = 1.0f;
-		for (auto vh_it = mesh.voh_iter(tvh); vh_it.is_valid(); vh_it++) {
-			auto tt = vh_it->to();
+		for (MyMesh::VertexOHalfedgeIter vh_it = mesh.voh_iter(tvh); vh_it.is_valid(); ++vh_it)
+		{
+			MyMesh::VertexHandle tt = vh_it->to();
 			Eigen::Matrix4f newQ = s.Q_new + Q[tt];
 			Eigen::Matrix4f tQ = newQ;
 			Eigen::Vector4f b(0.0f, 0.0f, 0.0f, 1.0f);
@@ -127,11 +297,16 @@ void qemSimplification(MyMesh& mesh, float ratio) {
 			Eigen::FullPivLU<Eigen::Matrix4f> lu(tQ);
 			Eigen::Vector4f vnew;
 			// if is invertible, solve the linear equation
-			if (lu.isInjective())
+			if (lu.isInvertible())
+			{
 				vnew = tQ.inverse() * b;
+			}
 			// else take the midpoint
 			else
+			{
 				vnew = (v[tvh] + v[tt]) / 2.0f;
+			}
+			//std::cout << vnew << std::endl;
 			edge_Collapse_structure ts;
 			ts.hf = *vh_it;
 			ts.cost = vnew.transpose() * newQ * vnew;
@@ -145,112 +320,7 @@ void qemSimplification(MyMesh& mesh, float ratio) {
 			q.push(ts);
 		}
 		i++;
+
 	}
 	mesh.garbage_collection();
-}
-
-double calc_angle(MyMesh::HalfedgeHandle he, MyMesh& mesh) {
-	MyMesh::Point p1, p2, p3;
-	p1 = mesh.point(mesh.from_vertex_handle(he));
-	p2 = mesh.point(mesh.to_vertex_handle(he));
-	p3 = mesh.point(mesh.to_vertex_handle(mesh.next_halfedge_handle(he)));
-	MyMesh::Point v1 = p1 - p3;
-	MyMesh::Point v2 = p2 - p3;
-	double a = OpenMesh::norm(v1);
-	double b = OpenMesh::norm(p1 - p2);
-	double c = OpenMesh::norm(v2);
-
-	return acos((c * c + a * a - b * b) / (2 * c * a));
-}
-
-std::vector<MyMesh::Point> calc_Hn(MyMesh& mesh) {
-	std::vector<MyMesh::Point> ret(mesh.n_vertices());
-	for (auto v_it = mesh.vertices_begin(); v_it != mesh.vertices_end(); v_it++) {
-		double area = 0.0;
-		// 1-ring
-		MyMesh::Point tp(0.0f, 0.0f, 0.0f);
-		for (auto vh_it = mesh.voh_iter(*v_it); vh_it.is_valid(); ++vh_it) {
-			double w = 0.0f;
-			w += 1.0f / tan(calc_angle(*vh_it, mesh));
-
-			if (vh_it->opp().is_valid())
-				w += 1.0f / tan(calc_angle(vh_it->opp(), mesh));
-			if (w < 0) w = 0;
-			if (w > 10) w = 10;
-			tp += w * (mesh.point(*v_it) - mesh.point(vh_it->to()));
-			area += w * OpenMesh::sqrnorm(mesh.point(*v_it) - mesh.point(vh_it->to()));
-		}
-		area /= 8.0;
-		tp /= (-4 * area);
-		ret[v_it->idx()] = tp;
-	}
-	return ret;
-}
-MyMesh local_minimal_surface(MyMesh mesh, float lambda, int it_num) {
-	for (int it = 0; it < it_num; it++) {
-		std::vector<MyMesh::Point> Hn = calc_Hn(mesh);
-		// for all vertices
-		for (auto v_it = mesh.vertices_begin(); v_it != mesh.vertices_end(); v_it++) {
-			// fix boundary
-			if (mesh.is_boundary(*v_it)) continue;
-			// update the vertex position
-			mesh.point(*v_it) += lambda * Hn[v_it->idx()];
-		}
-	}
-	return mesh;
-}
-
-MyMesh global_minimal_surface(MyMesh mesh) {
-	Eigen::SparseMatrix<float> A(mesh.n_vertices(), mesh.n_vertices());
-	Eigen::SparseLU<Eigen::SparseMatrix<float>, Eigen::COLAMDOrdering<int>> solver;
-	std::vector<Eigen::Triplet<float>> tv;
-	Eigen::VectorXf b_x(mesh.n_vertices());
-	Eigen::VectorXf b_y(mesh.n_vertices());
-	Eigen::VectorXf b_z(mesh.n_vertices());
-
-	// fill the coefficient matrix
-	for (auto v_it = mesh.vertices_begin(); v_it != mesh.vertices_end(); v_it++) {
-		// if is boundary, a_i = 1
-		if (mesh.is_boundary(*v_it)) {
-			Eigen::Triplet<float> temp((*v_it).idx(), (*v_it).idx(), 1.0f);
-			tv.push_back(temp);
-			b_x[(*v_it).idx()] = mesh.point(*v_it)[0];
-			b_y[(*v_it).idx()] = mesh.point(*v_it)[1];
-			b_z[(*v_it).idx()] = mesh.point(*v_it)[2];
-		}
-		else {
-			float count = 0;
-			// negative number of the sum of the 1-ring coefficient
-			for (auto vh_it = mesh.voh_iter(*v_it); vh_it.is_valid(); vh_it++) {
-				// calc cot weight
-				float w1 = 1.0f / tanf(calc_angle(*vh_it, mesh));
-				float w2 = 1.0f / tanf(calc_angle((*vh_it).opp(), mesh));
-				float w = w1 + w2;
-				Eigen::Triplet<float> temp((*v_it).idx(), (*vh_it).to().idx(), w);
-				tv.push_back(temp);
-				count += w;
-			}
-			Eigen::Triplet<float> temp((*v_it).idx(), (*v_it).idx(), -count);
-			tv.push_back(temp);
-			b_x[(*v_it).idx()] = 0.0f;
-			b_y[(*v_it).idx()] = 0.0f;
-			b_z[(*v_it).idx()] = 0.0f;
-		}
-	}
-
-	// solve u, v
-	A.setFromTriplets(tv.begin(), tv.end());
-	solver.analyzePattern(A);
-	solver.factorize(A);
-	Eigen::VectorXf x = solver.solve(b_x);
-	Eigen::VectorXf y = solver.solve(b_y);
-	Eigen::VectorXf z = solver.solve(b_z);
-	for (auto v_it = mesh.vertices_begin(); v_it != mesh.vertices_end(); v_it++) {
-		if (!v_it->is_boundary()) {
-			int idx = (*v_it).idx();
-			MyMesh::Point tp(x(idx), y(idx), z(idx));
-			mesh.set_point(*v_it, tp);
-		}
-	}
-	return mesh;
 }

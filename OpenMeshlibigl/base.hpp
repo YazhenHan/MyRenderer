@@ -1,12 +1,10 @@
 #pragma once
-#ifndef BASE_HPP
-#define BASE_HPP
+#include <OpenMesh/Core/Mesh/DefaultTriMesh.hh>
+#include <Eigen/Core>
+#include <igl/opengl/glfw/Viewer.h>
 
-#include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
-#include <Eigen/Dense>
+typedef OpenMesh::TriMesh MyMesh;
 
-typedef OpenMesh::TriMesh_ArrayKernelT<>  MyMesh;
+void openmesh_igl(const MyMesh& mesh, Eigen::MatrixXd& V, Eigen::MatrixXi& F);
 
-void openMesh_to_igl(MyMesh& mesh, Eigen::MatrixXd& V, Eigen::MatrixXi& F);
-
-#endif // !BASE_HPP
+void display_mesh(const MyMesh& mesh, igl::opengl::glfw::Viewer& viewer);
