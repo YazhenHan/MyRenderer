@@ -10,3 +10,5 @@ void global_laplace_smoother(MyMesh& mesh);
 void loop_subdivision(MyMesh& mesh);
 
 void qem_simplification(MyMesh& mesh);
+
+void laplace_editing(MyMesh& mesh);

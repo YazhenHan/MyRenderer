@@ -44,6 +44,11 @@ bool key_down(igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier
 		OpenMesh::IO::write_mesh(mesh, "qem_sim.obj");
 		display_mesh(mesh, viewer);
 		break;
+	case '6':
+		laplace_editing(mesh);
+		OpenMesh::IO::write_mesh(mesh, "laplace_editing.obj");
+		display_mesh(mesh, viewer);
+		break;
 	default:
 		break;
 	}

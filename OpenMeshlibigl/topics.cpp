@@ -324,3 +324,5 @@ void qem_simplification(MyMesh& mesh) {
 	}
 	mesh.garbage_collection();
 }
+
+void laplace_editing(MyMesh& mesh) {}
