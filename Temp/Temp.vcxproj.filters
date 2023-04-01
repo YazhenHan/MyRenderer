@@ -18,5 +18,27 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="camera.h">
+      <Filter>头文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="shader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cube_fs.glsl">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="light_fs.glsl">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="light_vs.glsl">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="cube_vs.glsl">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>
