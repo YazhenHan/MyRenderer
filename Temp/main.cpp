@@ -128,10 +128,10 @@ int main()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    data = stbi_load("../assets/textures/container.jpg", &width, &height, &nrChannels, 0);
+    data = stbi_load("../assets/textures/container2.png", &width, &height, &nrChannels, 0);
     if (data)
     {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
     }
     else
@@ -147,7 +147,7 @@ int main()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    data = stbi_load("../assets/textures/awesomeface.png", &width, &height, &nrChannels, 0);
+    data = stbi_load("../assets/textures/container2_specular.png", &width, &height, &nrChannels, 0);
     if (data)
     {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
@@ -161,8 +161,8 @@ int main()
 
     Shader cubeShader("cube_vs.glsl", "cube_fs.glsl");
     cubeShader.use();
-    cubeShader.setInt("texture0", 0);
-    cubeShader.setInt("texture1", 1);
+    cubeShader.setInt("material.diffuse", 0);
+    cubeShader.setInt("material.specular", 1);
 
     unsigned int lightVAO;
     glGenVertexArrays(1, &lightVAO);
@@ -179,7 +179,7 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
     int fps = 0;
-    float lightColor[3] = { 1.0f, 1.0f, 1.0f }, lightPos[3] = { 10.0f, 10.0f, 10.0f }, ambient[3] = { 1.0f, 0.5f, 0.31f },
+    float lightColor[3] = { 1.0f, 1.0f, 1.0f }, lightPos[3] = { 1.2f, 1.0f, 2.0f }, ambient[3] = { 1.0f, 0.5f, 0.31f },
         diffuse[3] = { 1.0f, 0.5f, 0.31f }, specular[3] = { 0.5f, 0.5f, 0.5f }, shininess = 32.0f,
         lightAmbient[3] = { 0.2f, 0.2f, 0.2f }, lightDiffuse[3] = { 0.5f, 0.5f, 0.5f }, lightSpecular[3] = { 1.0f, 1.0f, 1.0f };
     while (!glfwWindowShouldClose(window))
